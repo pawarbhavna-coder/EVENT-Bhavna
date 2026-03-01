@@ -1,7 +1,6 @@
-import React, { useState, useEffect } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
-import { Menu, X, Calendar, Users, Building, BookOpen, Info, Phone, User, LogOut, Award } from 'lucide-react';
-import { useApp } from '../../contexts/AppContext';
+import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { Menu, X, Calendar, Users, BookOpen, Info, Phone, User, LogOut } from 'lucide-react';
 import { useAuth } from '../../contexts/NewAuthContext';
 import UnifiedAuthModal from '../auth/UnifiedAuthModal';
 
@@ -10,7 +9,6 @@ const NewPublicNavigation: React.FC = () => {
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [showProfileMenu, setShowProfileMenu] = useState(false);
   const navigate = useNavigate();
-  const location = useLocation();
   const { isAuthenticated, user, profile, logout } = useAuth();
 
   const navigationItems = [
@@ -27,6 +25,8 @@ const NewPublicNavigation: React.FC = () => {
     setShowProfileMenu(false);
   };
 
+
+
   const handleAuthAction = () => {
     if (isAuthenticated && user && profile) {
       // Route to appropriate dashboard based on role
@@ -42,14 +42,21 @@ const NewPublicNavigation: React.FC = () => {
 
   const handleLoginSuccess = () => {
     setIsAuthModalOpen(false);
-    // Navigation is handled by the auth modal itself
+    // Auto-redirect handled by the useEffect above watching profile.role
   };
 
-  const handleLogout = () => {
-    logout();
-    navigate('/');
+  const handleLogout = async () => {
     setShowProfileMenu(false);
     setIsMobileMenuOpen(false);
+    try {
+      await logout();
+    } catch (err) {
+      console.error('Logout error:', err);
+    }
+    Object.keys(localStorage).forEach((key) => {
+      if (key.startsWith('sb-')) localStorage.removeItem(key);
+    });
+    navigate('/');
   };
 
   const toggleMobileMenu = () => {
@@ -158,8 +165,8 @@ const NewPublicNavigation: React.FC = () => {
 
           {/* Mobile Navigation */}
           <div className={`md:hidden transition-all duration-300 ease-in-out ${isMobileMenuOpen
-              ? 'max-h-screen opacity-100 transform translate-y-0'
-              : 'max-h-0 opacity-0 overflow-hidden transform -translate-y-2'
+            ? 'max-h-screen opacity-100 transform translate-y-0'
+            : 'max-h-0 opacity-0 overflow-hidden transform -translate-y-2'
             }`}>
             <div className="px-2 pt-2 pb-3 space-y-1 rounded-xl mt-2 shadow-xl border border-white/20" style={{ backgroundColor: '#1e1b4b' }}>
               {navigationItems.map((item) => {

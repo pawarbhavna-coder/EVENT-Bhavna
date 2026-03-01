@@ -38,22 +38,29 @@ const UnifiedNavigation: React.FC = () => {
   const handleViewSwitch = () => {
     const newMode = viewMode === 'attendee' ? 'organizer' : 'attendee';
     setViewMode(newMode);
-    
+
     // Navigate to appropriate dashboard
     if (newMode === 'organizer') {
       navigate('/dashboard');
     } else {
       navigate('/dashboard');
     }
-    
+
     setIsMobileMenuOpen(false);
   };
 
-  const handleLogout = () => {
-    logout();
-    navigate('/');
+  const handleLogout = async () => {
     setShowProfileMenu(false);
     setIsMobileMenuOpen(false);
+    try {
+      await logout();
+    } catch (err) {
+      console.error('Logout error:', err);
+    }
+    Object.keys(localStorage).forEach((key) => {
+      if (key.startsWith('sb-')) localStorage.removeItem(key);
+    });
+    navigate('/');
   };
 
   return (
@@ -62,7 +69,7 @@ const UnifiedNavigation: React.FC = () => {
         {/* Main Header */}
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
-          <div 
+          <div
             className="flex-shrink-0 cursor-pointer"
             onClick={() => handleNavigation('/dashboard')}
           >
@@ -125,7 +132,7 @@ const UnifiedNavigation: React.FC = () => {
               <Bell className="w-5 h-5" />
               <span className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full"></span>
             </button>
-            
+
             {/* Profile Menu */}
             <div className="relative">
               <button
@@ -141,7 +148,7 @@ const UnifiedNavigation: React.FC = () => {
                 </div>
                 <ChevronDown className="w-4 h-4 text-gray-400" />
               </button>
-              
+
               {/* Profile Dropdown */}
               {showProfileMenu && (
                 <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg py-2 z-50 animate-fade-in border border-gray-200">
@@ -203,11 +210,10 @@ const UnifiedNavigation: React.FC = () => {
         )}
 
         {/* Mobile Navigation */}
-        <div className={`md:hidden transition-all duration-300 ease-in-out ${
-          isMobileMenuOpen 
-            ? 'max-h-screen opacity-100 transform translate-y-0' 
+        <div className={`md:hidden transition-all duration-300 ease-in-out ${isMobileMenuOpen
+            ? 'max-h-screen opacity-100 transform translate-y-0'
             : 'max-h-0 opacity-0 overflow-hidden transform -translate-y-2'
-        }`}>
+          }`}>
           <div className="px-2 pt-2 pb-3 space-y-1 bg-white/95 backdrop-blur-md rounded-xl mt-2 shadow-xl border border-gray-200">
             {/* View Mode Indicator */}
             <div className="px-4 py-2 bg-indigo-50 rounded-lg mb-3">
@@ -236,7 +242,7 @@ const UnifiedNavigation: React.FC = () => {
                 </button>
               );
             })}
-            
+
             <div className="border-t border-gray-200 pt-3 mt-3">
               <div className="mobile-nav-item flex items-center space-x-2 text-gray-700 px-4 py-3">
                 <User className="w-4 h-4" />

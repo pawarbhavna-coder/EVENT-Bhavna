@@ -28,7 +28,7 @@ DROP POLICY IF EXISTS "Authenticated delete for documents" ON storage.objects;
 -- Create simple, permissive policies
 CREATE POLICY "Allow public read access" ON storage.objects
 FOR SELECT USING (true);
-
+ 
 CREATE POLICY "Allow authenticated insert" ON storage.objects
 FOR INSERT WITH CHECK (auth.role() = 'authenticated');
 

@@ -14,12 +14,12 @@ interface AuthModalProps {
 
 type UserRole = 'attendee' | 'organizer' | 'sponsor';
 
-const UnifiedAuthModal: React.FC<AuthModalProps> = ({ 
-  isOpen, 
-  onClose, 
-  onLoginSuccess, 
+const UnifiedAuthModal: React.FC<AuthModalProps> = ({
+  isOpen,
+  onClose,
+  onLoginSuccess,
   defaultRole = 'attendee',
-  redirectTo 
+  redirectTo
 }) => {
   const { setCurrentView } = useApp();
   const { login, register } = useAuth();
@@ -82,12 +82,12 @@ const UnifiedAuthModal: React.FC<AuthModalProps> = ({
 
     setIsLoading(true);
     setErrors({});
-    
+
     try {
       if (isLoginMode) {
         console.log('Attempting login for:', formData.email);
         await login(formData.email, formData.password, selectedRole);
-        
+
         // Handle redirection after successful login
         if (redirectTo) {
           setCurrentView(redirectTo as any);
@@ -107,12 +107,12 @@ const UnifiedAuthModal: React.FC<AuthModalProps> = ({
       } else {
         console.log('Attempting registration for:', formData.email, 'with role:', selectedRole);
         await register(formData.email, formData.password, formData.name, selectedRole, formData.company);
-        
+
         console.log('Registration completed, checking profile...');
-        
+
         // Wait a moment for profile creation
         await new Promise(resolve => setTimeout(resolve, 2000));
-        
+
         // Check if profile was created
         const { data: { user } } = await supabase.auth.getUser();
         if (user) {
@@ -121,7 +121,7 @@ const UnifiedAuthModal: React.FC<AuthModalProps> = ({
             .select('*')
             .eq('id', user.id)
             .single();
-          
+
           if (profileError) {
             console.error('Profile check failed:', profileError);
             setErrors({ general: 'Account created but profile setup failed. Please try logging in.' });
@@ -131,7 +131,7 @@ const UnifiedAuthModal: React.FC<AuthModalProps> = ({
             alert('Account created successfully! You are now logged in.');
           }
         }
-        
+
         // After registration, redirect to appropriate dashboard
         if (redirectTo) {
           setCurrentView(redirectTo as any);
@@ -148,13 +148,13 @@ const UnifiedAuthModal: React.FC<AuthModalProps> = ({
           }
         }
       }
-      
+
       onLoginSuccess({} as any);
       onClose();
     } catch (error) {
       console.error('Auth error:', error);
       let errorMessage = 'Authentication failed. Please try again.';
-      
+
       if (error instanceof Error) {
         // Handle specific Supabase errors
         if (error.message.includes('Invalid login credentials')) {
@@ -173,7 +173,7 @@ const UnifiedAuthModal: React.FC<AuthModalProps> = ({
           errorMessage = error.message;
         }
       }
-      
+
       setErrors({ general: errorMessage });
     } finally {
       setIsLoading(false);
@@ -187,20 +187,20 @@ const UnifiedAuthModal: React.FC<AuthModalProps> = ({
   };
 
   const roleOptions = [
-    { 
-      value: 'attendee', 
-      label: 'Attendee', 
+    {
+      value: 'attendee',
+      label: 'Attendee',
       description: 'Join and attend events',
       icon: User
     },
-    { 
-      value: 'organizer', 
-      label: 'Event Organizer', 
+    {
+      value: 'organizer',
+      label: 'Event Organizer',
       description: 'Create and manage events',
       icon: Calendar
     },
   ];
-  
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black bg-opacity-50 backdrop-blur-sm">
       <div className="relative w-full max-w-md bg-white rounded-2xl shadow-2xl transform transition-all duration-300 scale-100 max-h-screen overflow-y-auto">
@@ -238,11 +238,10 @@ const UnifiedAuthModal: React.FC<AuthModalProps> = ({
                     key={role.value}
                     type="button"
                     onClick={() => setSelectedRole(role.value as UserRole)}
-                    className={`p-3 rounded-lg border-2 transition-all duration-200 ${
-                      selectedRole === role.value
+                    className={`p-3 rounded-lg border-2 transition-all duration-200 ${selectedRole === role.value
                         ? 'border-indigo-500 bg-indigo-50 text-indigo-700'
                         : 'border-gray-200 hover:border-gray-300'
-                    }`}
+                      }`}
                   >
                     <role.icon className="w-5 h-5 mx-auto mb-1" />
                     <div className="text-xs font-medium">{role.label}</div>
@@ -272,10 +271,9 @@ const UnifiedAuthModal: React.FC<AuthModalProps> = ({
                       placeholder="Full Name"
                       value={formData.name}
                       onChange={handleInputChange}
-                     autoComplete="name"
-                      className={`w-full pl-10 pr-4 py-3 border rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors duration-200 ${
-                        errors.name ? 'border-red-500' : 'border-gray-300'
-                      }`}
+                      autoComplete="name"
+                      className={`w-full pl-10 pr-4 py-3 border rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors duration-200 ${errors.name ? 'border-red-500' : 'border-gray-300'
+                        }`}
                     />
                   </div>
                   {errors.name && <p className="text-red-500 text-sm mt-1">{errors.name}</p>}
@@ -331,10 +329,9 @@ const UnifiedAuthModal: React.FC<AuthModalProps> = ({
                   placeholder="Email Address"
                   value={formData.email}
                   onChange={handleInputChange}
-                 autoComplete="email"
-                  className={`w-full pl-10 pr-4 py-3 border rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors duration-200 ${
-                    errors.email ? 'border-red-500' : 'border-gray-300'
-                  }`}
+                  autoComplete="email"
+                  className={`w-full pl-10 pr-4 py-3 border rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors duration-200 ${errors.email ? 'border-red-500' : 'border-gray-300'
+                    }`}
                 />
               </div>
               {errors.email && <p className="text-red-500 text-sm mt-1">{errors.email}</p>}
@@ -349,10 +346,9 @@ const UnifiedAuthModal: React.FC<AuthModalProps> = ({
                   placeholder="Password"
                   value={formData.password}
                   onChange={handleInputChange}
-                 autoComplete={isLoginMode ? "current-password" : "new-password"}
-                  className={`w-full pl-10 pr-12 py-3 border rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors duration-200 ${
-                    errors.password ? 'border-red-500' : 'border-gray-300'
-                  }`}
+                  autoComplete={isLoginMode ? "current-password" : "new-password"}
+                  className={`w-full pl-10 pr-12 py-3 border rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors duration-200 ${errors.password ? 'border-red-500' : 'border-gray-300'
+                    }`}
                 />
                 <button
                   type="button"
@@ -375,10 +371,9 @@ const UnifiedAuthModal: React.FC<AuthModalProps> = ({
                     placeholder="Confirm Password"
                     value={formData.confirmPassword}
                     onChange={handleInputChange}
-                   autoComplete="new-password"
-                    className={`w-full pl-10 pr-4 py-3 border rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors duration-200 ${
-                      errors.confirmPassword ? 'border-red-500' : 'border-gray-300'
-                    }`}
+                    autoComplete="new-password"
+                    className={`w-full pl-10 pr-4 py-3 border rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors duration-200 ${errors.confirmPassword ? 'border-red-500' : 'border-gray-300'
+                      }`}
                   />
                 </div>
                 {errors.confirmPassword && <p className="text-red-500 text-sm mt-1">{errors.confirmPassword}</p>}

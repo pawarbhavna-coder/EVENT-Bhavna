@@ -1,32 +1,28 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import {
-  Home, Users, Calendar, FileText, Settings,
-  LogOut, Menu, X, User, Bell, Shield, ChevronDown, BarChart3,
-  ChevronLeft, ChevronRight
+  Users, Calendar, FileText,
+  LogOut, Menu, X, User, Bell, Shield,
+  ChevronLeft, ChevronRight, Plus, LayoutDashboard
 } from 'lucide-react';
 import { useAuth } from '../../contexts/NewAuthContext';
 import '../../styles/admin-panel.css';
 
 const AdminNavigation: React.FC = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { user, profile, logout } = useAuth();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isSidebarExpanded, setIsSidebarExpanded] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
 
-  // Check if we're on mobile
   useEffect(() => {
-    const checkMobile = () => {
-      setIsMobile(window.innerWidth < 1024);
-    };
-    
+    const checkMobile = () => setIsMobile(window.innerWidth < 1024);
     checkMobile();
     window.addEventListener('resize', checkMobile);
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
 
-  // Close mobile menu when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       const target = event.target as Element;
@@ -34,57 +30,53 @@ const AdminNavigation: React.FC = () => {
         setIsMobileMenuOpen(false);
       }
     };
-
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [isMobile, isMobileMenuOpen]);
 
   const navigationItems = [
     {
-      label: 'Dashboard',
-      path: '/admin/dashboard',
-      icon: Home,
-      description: 'Overview & Analytics'
+      group: 'Overview',
+      items: [
+        { label: 'Dashboard', path: '/admin/dashboard', icon: LayoutDashboard, description: 'Stats & Charts' },
+      ]
     },
     {
-      label: 'User Management',
-      path: '/admin/dashboard', // User management is part of admin dashboard
-      icon: Users,
-      description: 'Manage Users & Roles'
+      group: 'Management',
+      items: [
+        { label: 'Users', path: '/admin/users', icon: Users, description: 'Manage Users & Roles' },
+        { label: 'Events', path: '/admin/events', icon: Calendar, description: 'All Platform Events' },
+        { label: 'Create Event', path: '/admin/create-event', icon: Plus, description: 'Add New Event' },
+        { label: 'Content', path: '/admin/content-management', icon: FileText, description: 'Site Content & Pages' },
+      ]
     },
     {
-      label: 'Event Oversight',
-      path: '/admin/event-oversight',
-      icon: Calendar,
-      description: 'Monitor Events'
-    },
-    {
-      label: 'Content Management',
-      path: '/admin/content-management',
-      icon: FileText,
-      description: 'Site Content & Pages'
-    },
+      group: 'System',
+      items: [
+        { label: 'Notifications', path: '/notifications', icon: Bell, description: 'System Alerts' },
+      ]
+    }
   ];
+
+  const isActive = (path: string) => location.pathname === path;
 
   const handleNavigation = (path: string) => {
     navigate(path);
     setIsMobileMenuOpen(false);
   };
 
-  const handleLogout = () => {
-    logout();
-    navigate('/');
+  const handleLogout = async () => {
     setIsMobileMenuOpen(false);
-  };
-
-  const toggleMobileMenu = () => {
-    setIsMobileMenuOpen(!isMobileMenuOpen);
-  };
-
-  const toggleSidebarExpansion = () => {
-    if (!isMobile) {
-      setIsSidebarExpanded(!isSidebarExpanded);
+    try {
+      await logout();
+    } catch (err) {
+      console.error('Logout error:', err);
     }
+    // Force-clear any stored Supabase session from localStorage
+    Object.keys(localStorage).forEach((key) => {
+      if (key.startsWith('sb-')) localStorage.removeItem(key);
+    });
+    navigate('/');
   };
 
   return (
@@ -92,19 +84,19 @@ const AdminNavigation: React.FC = () => {
       {/* Mobile Toggle Button */}
       <button
         className="admin-mobile-toggle"
-        onClick={toggleMobileMenu}
+        onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
         aria-label={isMobileMenuOpen ? 'Close menu' : 'Open menu'}
       >
         {isMobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
       </button>
 
-      {/* Mobile Sidebar Overlay */}
+      {/* Overlay */}
       <div
         className={`admin-sidebar-overlay ${isMobileMenuOpen ? 'active' : ''}`}
         onClick={() => setIsMobileMenuOpen(false)}
       />
 
-      {/* Admin Sidebar */}
+      {/* Sidebar */}
       <aside
         className={`admin-sidebar ${isMobileMenuOpen ? 'mobile-open' : ''} ${isSidebarExpanded && !isMobile ? 'expanded' : ''}`}
         onMouseEnter={() => !isMobile && setIsSidebarExpanded(true)}
@@ -121,11 +113,10 @@ const AdminNavigation: React.FC = () => {
               <div className="admin-badge">Admin Panel</div>
             </div>
           </div>
-          
-          {/* Desktop Expand/Collapse Button */}
+
           {!isMobile && (
             <button
-              onClick={toggleSidebarExpansion}
+              onClick={() => setIsSidebarExpanded(!isSidebarExpanded)}
               className="admin-expand-btn"
               aria-label={isSidebarExpanded ? 'Collapse sidebar' : 'Expand sidebar'}
             >
@@ -136,42 +127,28 @@ const AdminNavigation: React.FC = () => {
 
         {/* Navigation */}
         <nav className="admin-nav">
-          <div className="admin-nav-section">
-            <div className="admin-nav-title">Main Navigation</div>
-            {navigationItems.map((item) => {
-              const IconComponent = item.icon;
-              return (
-                <button
-                  key={item.path}
-                  onClick={() => handleNavigation(item.path)}
-                  className="admin-nav-item w-full text-left"
-                >
-                  <IconComponent className="admin-nav-icon" />
-                  <div>
-                    <div>{item.label}</div>
-                    <div className="text-xs opacity-75">{item.description}</div>
-                  </div>
-                </button>
-              );
-            })}
-          </div>
-
-          <div className="admin-nav-section">
-            <div className="admin-nav-title">System</div>
-            <button
-              onClick={() => handleNavigation('/notifications')}
-              className="admin-nav-item w-full text-left"
-            >
-              <div className="relative">
-                <Bell className="admin-nav-icon" />
-                <div className="admin-notification-dot"></div>
-              </div>
-              <div>
-                <div>Notifications</div>
-                <div className="text-xs opacity-75">System Alerts</div>
-              </div>
-            </button>
-          </div>
+          {navigationItems.map((group) => (
+            <div key={group.group} className="admin-nav-section">
+              <div className="admin-nav-title">{group.group}</div>
+              {group.items.map((item) => {
+                const IconComponent = item.icon;
+                const active = isActive(item.path);
+                return (
+                  <button
+                    key={item.path}
+                    onClick={() => handleNavigation(item.path)}
+                    className={`admin-nav-item w-full text-left ${active ? 'active' : ''}`}
+                  >
+                    <IconComponent className="admin-nav-icon" />
+                    <div>
+                      <div className="font-medium">{item.label}</div>
+                      <div className="text-xs opacity-75">{item.description}</div>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          ))}
         </nav>
 
         {/* User Profile Section */}
@@ -185,10 +162,7 @@ const AdminNavigation: React.FC = () => {
               <p>{profile?.role || 'admin'}</p>
             </div>
           </div>
-          <button
-            onClick={handleLogout}
-            className="admin-logout-btn w-full mt-3"
-          >
+          <button onClick={handleLogout} className="admin-logout-btn w-full mt-3">
             <LogOut className="w-4 h-4" />
             <span>Sign Out</span>
           </button>

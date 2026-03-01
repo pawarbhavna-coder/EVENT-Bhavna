@@ -32,7 +32,7 @@ const EventPaymentPage: React.FC = () => {
     try {
       // Simulate payment processing
       await new Promise(resolve => setTimeout(resolve, 3000));
-      
+
       // Register for event after successful payment
       const result = await attendeeEventService.registerForEvent(
         {
@@ -118,22 +118,20 @@ const EventPaymentPage: React.FC = () => {
                 <div className="grid grid-cols-3 gap-4">
                   <button
                     onClick={() => setPaymentMethod('card')}
-                    className={`p-4 border-2 rounded-lg transition-all duration-200 ${
-                      paymentMethod === 'card'
+                    className={`p-4 border-2 rounded-lg transition-all duration-200 ${paymentMethod === 'card'
                         ? 'border-indigo-500 bg-indigo-50'
                         : 'border-gray-200 hover:border-gray-300'
-                    }`}
+                      }`}
                   >
                     <CreditCard className="w-6 h-6 mx-auto mb-2 text-indigo-600" />
                     <span className="text-sm font-medium">Credit/Debit Card</span>
                   </button>
                   <button
                     onClick={() => setPaymentMethod('upi')}
-                    className={`p-4 border-2 rounded-lg transition-all duration-200 ${
-                      paymentMethod === 'upi'
+                    className={`p-4 border-2 rounded-lg transition-all duration-200 ${paymentMethod === 'upi'
                         ? 'border-indigo-500 bg-indigo-50'
                         : 'border-gray-200 hover:border-gray-300'
-                    }`}
+                      }`}
                   >
                     <div className="w-6 h-6 mx-auto mb-2 bg-indigo-600 rounded text-white text-xs flex items-center justify-center font-bold">
                       UPI
@@ -142,11 +140,10 @@ const EventPaymentPage: React.FC = () => {
                   </button>
                   <button
                     onClick={() => setPaymentMethod('netbanking')}
-                    className={`p-4 border-2 rounded-lg transition-all duration-200 ${
-                      paymentMethod === 'netbanking'
+                    className={`p-4 border-2 rounded-lg transition-all duration-200 ${paymentMethod === 'netbanking'
                         ? 'border-indigo-500 bg-indigo-50'
                         : 'border-gray-200 hover:border-gray-300'
-                    }`}
+                      }`}
                   >
                     <div className="w-6 h-6 mx-auto mb-2 bg-indigo-600 rounded text-white text-xs flex items-center justify-center font-bold">
                       NB

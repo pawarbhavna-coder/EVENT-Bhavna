@@ -68,6 +68,9 @@ const EventTicketingSetupPage = lazy(() => import('./components/organizer/EventT
 const AdminDashboard = lazy(() => import('./components/admin/AdminDashboard'));
 const EventOversightPage = lazy(() => import('./components/admin/EventOversightPage'));
 const ContentManagementPage = lazy(() => import('./components/admin/ContentManagementPage'));
+const AdminEventsPage = lazy(() => import('./components/admin/AdminEventsPage'));
+const AdminCreateEventPage = lazy(() => import('./components/admin/AdminCreateEventPage'));
+const UserManagementPage = lazy(() => import('./components/admin/UserManagementPage'));
 
 const LoadingFallback: React.FC = () => (
   <div className="flex items-center justify-center h-screen bg-gray-50">
@@ -80,13 +83,13 @@ const LoadingFallback: React.FC = () => (
 
 
 const AppContent: React.FC = () => {
-  const { user, profile, isAuthenticated } = useAuth();
+  const { user, profile, isAuthenticated, loading } = useAuth();
   const { isModalOpen, closeModal } = useAdminShortcut();
 
   console.log('AppContent render:', { user, profile, isAuthenticated });
 
-  // Add loading state while auth is being determined
-  if (user === undefined || (isAuthenticated && user && !profile)) {
+  // Block rendering until Supabase has fully resolved auth state
+  if (loading || user === undefined || (isAuthenticated && user && !profile)) {
     return <LoadingFallback />;
   }
 
@@ -128,221 +131,245 @@ const AppContent: React.FC = () => {
             <Route path="/event-payment-success" element={<EventPaymentSuccess />} />
 
             {/* --- Unified Dashboard Route --- */}
-            <Route 
-              path="/dashboard" 
+            <Route
+              path="/dashboard"
               element={
                 <ProtectedRoute allowedRoles={['attendee', 'organizer', 'admin']}>
                   <UnifiedDashboard />
                 </ProtectedRoute>
-              } 
+              }
             />
 
             {/* --- Shared Routes --- */}
-            <Route 
-              path="/my-events" 
+            <Route
+              path="/my-events"
               element={
                 <ProtectedRoute allowedRoles={['attendee', 'organizer', 'admin']}>
                   <AttendeeMyEventsPage />
                 </ProtectedRoute>
-              } 
+              }
             />
 
             {/* --- Attendee-specific Routes --- */}
-            <Route 
-              path="/notifications" 
+            <Route
+              path="/notifications"
               element={
                 <ProtectedRoute allowedRoles={['attendee', 'organizer', 'admin']}>
                   <NotificationsPage />
                 </ProtectedRoute>
-              } 
+              }
             />
-            <Route 
-              path="/profile" 
+            <Route
+              path="/profile"
               element={
                 <ProtectedRoute allowedRoles={['attendee', 'organizer', 'admin']}>
                   <AttendeeProfilePage />
                 </ProtectedRoute>
-              } 
+              }
             />
-            <Route 
-              path="/agenda-builder" 
+            <Route
+              path="/agenda-builder"
               element={
                 <ProtectedRoute allowedRoles={['attendee']}>
                   <AgendaBuilderPage />
                 </ProtectedRoute>
-              } 
+              }
             />
-            <Route 
-              path="/networking-hub" 
+            <Route
+              path="/networking-hub"
               element={
                 <ProtectedRoute allowedRoles={['attendee']}>
                   <NetworkingHubPage />
                 </ProtectedRoute>
-              } 
+              }
             />
-            <Route 
-              path="/live-event" 
+            <Route
+              path="/live-event"
               element={
                 <ProtectedRoute allowedRoles={['attendee']}>
                   <LiveEventPage />
                 </ProtectedRoute>
-              } 
+              }
             />
-            <Route 
-              path="/expo-hall" 
+            <Route
+              path="/expo-hall"
               element={
                 <ProtectedRoute allowedRoles={['attendee']}>
                   <ExpoHallPage />
                 </ProtectedRoute>
-              } 
+              }
             />
 
             {/* --- Organizer Routes (Now with Admin Access) --- */}
-            <Route 
-              path="/organizer/create-event" 
+            <Route
+              path="/organizer/create-event"
               element={
                 <ProtectedRoute allowedRoles={['organizer', 'admin']}>
                   <CreateEventPage />
                 </ProtectedRoute>
-              } 
+              }
             />
-            <Route 
-              path="/organizer/analytics" 
+            <Route
+              path="/organizer/analytics"
               element={
                 <ProtectedRoute allowedRoles={['organizer', 'admin']}>
                   <RealAnalyticsPage />
                 </ProtectedRoute>
-              } 
+              }
             />
-            <Route 
-              path="/organizer/settings" 
+            <Route
+              path="/organizer/settings"
               element={
                 <ProtectedRoute allowedRoles={['organizer', 'admin']}>
                   <OrganizerSettingsPage />
                 </ProtectedRoute>
-              } 
+              }
             />
-            <Route 
-              path="/organizer/event-settings" 
+            <Route
+              path="/organizer/event-settings"
               element={
                 <ProtectedRoute allowedRoles={['organizer', 'admin']}>
                   <EventSettingsPage />
                 </ProtectedRoute>
-              } 
+              }
             />
-            <Route 
-              path="/organizer/landing-customizer" 
+            <Route
+              path="/organizer/landing-customizer"
               element={
                 <ProtectedRoute allowedRoles={['organizer', 'admin']}>
                   <LandingCustomizerPage />
                 </ProtectedRoute>
-              } 
+              }
             />
-            <Route 
-              path="/organizer/agenda-manager" 
+            <Route
+              path="/organizer/agenda-manager"
               element={
                 <ProtectedRoute allowedRoles={['organizer', 'admin']}>
                   <AgendaManagerPage />
                 </ProtectedRoute>
-              } 
+              }
             />
-            <Route 
-              path="/organizer/venue-manager" 
+            <Route
+              path="/organizer/venue-manager"
               element={
                 <ProtectedRoute allowedRoles={['organizer', 'admin']}>
                   <VenueManagerPage />
                 </ProtectedRoute>
-              } 
+              }
             />
-            <Route 
-              path="/organizer/ticketing" 
+            <Route
+              path="/organizer/ticketing"
               element={
                 <ProtectedRoute allowedRoles={['organizer', 'admin']}>
                   <RealTicketingPage />
                 </ProtectedRoute>
-              } 
+              }
             />
-            <Route 
-              path="/organizer/discount-codes" 
+            <Route
+              path="/organizer/discount-codes"
               element={
                 <ProtectedRoute allowedRoles={['organizer', 'admin']}>
                   <DiscountCodesPage />
                 </ProtectedRoute>
-              } 
+              }
             />
-            <Route 
-              path="/organizer/email-campaigns" 
+            <Route
+              path="/organizer/email-campaigns"
               element={
                 <ProtectedRoute allowedRoles={['organizer', 'admin']}>
                   <RealEmailCampaignsPage />
                 </ProtectedRoute>
-              } 
+              }
             />
-            <Route 
-              path="/organizer/attendee-management" 
+            <Route
+              path="/organizer/attendee-management"
               element={
                 <ProtectedRoute allowedRoles={['organizer', 'admin']}>
                   <RealAttendeeManagementPage />
                 </ProtectedRoute>
-              } 
+              }
             />
-            <Route 
-              path="/organizer/speaker-portal" 
+            <Route
+              path="/organizer/speaker-portal"
               element={
                 <ProtectedRoute allowedRoles={['organizer', 'admin']}>
                   <SpeakerPortalPage />
                 </ProtectedRoute>
-              } 
+              }
             />
-            <Route 
-              path="/organizer/staff-roles" 
+            <Route
+              path="/organizer/staff-roles"
               element={
                 <ProtectedRoute allowedRoles={['organizer', 'admin']}>
                   <StaffRolesPage />
                 </ProtectedRoute>
-              } 
+              }
             />
-            <Route 
-              path="/organizer/event/:eventId/edit" 
+            <Route
+              path="/organizer/event/:eventId/edit"
               element={
                 <ProtectedRoute allowedRoles={['organizer', 'admin']}>
                   <EventEditPage />
                 </ProtectedRoute>
-              } 
+              }
             />
-            <Route 
-              path="/organizer/event/:eventId/ticketing" 
+            <Route
+              path="/organizer/event/:eventId/ticketing"
               element={
                 <ProtectedRoute allowedRoles={['organizer', 'admin']}>
                   <EventTicketingSetupPage />
                 </ProtectedRoute>
-              } 
+              }
             />
 
             {/* --- Admin Routes --- */}
-            <Route 
-              path="/admin/dashboard" 
+            <Route
+              path="/admin/dashboard"
               element={
                 <ProtectedRoute requiredRole="admin">
                   <AdminDashboard />
                 </ProtectedRoute>
-              } 
+              }
             />
-            <Route 
-              path="/admin/event-oversight" 
+            <Route
+              path="/admin/users"
+              element={
+                <ProtectedRoute requiredRole="admin">
+                  <UserManagementPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin/events"
+              element={
+                <ProtectedRoute requiredRole="admin">
+                  <AdminEventsPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin/create-event"
+              element={
+                <ProtectedRoute requiredRole="admin">
+                  <AdminCreateEventPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin/event-oversight"
               element={
                 <ProtectedRoute requiredRole="admin">
                   <EventOversightPage />
                 </ProtectedRoute>
-              } 
+              }
             />
-            <Route 
-              path="/admin/content-management" 
+            <Route
+              path="/admin/content-management"
               element={
                 <ProtectedRoute requiredRole="admin">
                   <ContentManagementPage />
                 </ProtectedRoute>
-              } 
+              }
             />
 
             {/* Fallback Route */}

@@ -7,10 +7,10 @@ const EventPaymentSuccess: React.FC = () => {
   const { registrationData, setCurrentView } = useApp();
   const navigate = useNavigate();
   const bookingId = `REG-${Date.now().toString().slice(-8)}`;
-  
+
   const handleDownloadReceipt = () => {
     if (!registrationData) return;
-    
+
     const receiptData = {
       bookingId,
       eventName: registrationData.eventDetails.title,
@@ -18,12 +18,12 @@ const EventPaymentSuccess: React.FC = () => {
       price: registrationData.price,
       date: new Date().toISOString(),
     };
-    
+
     const dataStr = JSON.stringify(receiptData, null, 2);
-    const dataUri = 'data:application/json;charset=utf-8,'+ encodeURIComponent(dataStr);
-    
+    const dataUri = 'data:application/json;charset=utf-8,' + encodeURIComponent(dataStr);
+
     const exportFileDefaultName = `receipt-${bookingId}.json`;
-    
+
     const linkElement = document.createElement('a');
     linkElement.setAttribute('href', dataUri);
     linkElement.setAttribute('download', exportFileDefaultName);

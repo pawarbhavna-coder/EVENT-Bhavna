@@ -67,7 +67,7 @@ const UnifiedDashboard: React.FC = () => {
 
   const loadOrganizerEvents = async () => {
     if (!user?.id) return;
-    
+
     setIsLoadingEvents(true);
     try {
       const result = await organizerCrudService.getMyEvents(user.id);
@@ -285,7 +285,7 @@ const UnifiedDashboard: React.FC = () => {
         ) : organizerEvents.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {organizerEvents.slice(0, 4).map((event) => (
-              <div 
+              <div
                 key={event.id}
                 className="group bg-gray-50 rounded-lg p-4 hover:shadow-md transition-all duration-200 cursor-pointer"
                 onClick={() => handleEventCardClick(event.id)}
@@ -303,11 +303,10 @@ const UnifiedDashboard: React.FC = () => {
                     <p className="font-medium text-gray-900 text-sm">{event.title}</p>
                     <p className="text-xs text-gray-500">{new Date(event.event_date).toLocaleDateString()}</p>
                   </div>
-                  <span className={`px-2 py-1 rounded-full text-xs font-medium capitalize ${
-                    event.status === 'published' ? 'bg-green-100 text-green-800' :
-                    event.status === 'draft' ? 'bg-orange-100 text-orange-800' :
-                    'bg-gray-100 text-gray-800'
-                  }`}>
+                  <span className={`px-2 py-1 rounded-full text-xs font-medium capitalize ${event.status === 'published' ? 'bg-green-100 text-green-800' :
+                    ent.status === 'draft' ? 'bg-orange-100 text-orange-800' :
+                      'bgray-100 text-gray-800'
+                    }`}>
                     {event.status}
                   </span>
                 </div>
@@ -340,34 +339,32 @@ const UnifiedDashboard: React.FC = () => {
               {viewMode === 'attendee' ? 'My Dashboard' : 'Organizer Dashboard'}
             </h1>
             <p className="text-xl text-gray-600">
-              {viewMode === 'attendee' 
-                ? 'Manage your events, network, and resources' 
+              {viewMode === 'attendee'
+                ? 'Manage your events, network, and resources'
                 : 'Manage your events and track their performance'
               }
             </p>
           </div>
-          
+
           {/* View Switcher */}
           <div className="bg-white rounded-2xl shadow-lg p-2">
             <div className="flex items-center space-x-2">
               <button
                 onClick={() => setViewMode('attendee')}
-                className={`flex items-center space-x-2 px-4 py-2 rounded-lg font-medium transition-all duration-200 ${
-                  viewMode === 'attendee'
-                    ? 'bg-indigo-600 text-white shadow-md'
-                    : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
-                }`}
+                className={`flex items-center space-x-2 px-4 py-2 rounded-lg font-medium transition-all duration-200 ${viewMode === 'attendee'
+                  ? 'bg-indigo-600 text-white shadow-md'
+                  : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+                  }`}
               >
                 <Users className="w-4 h-4" />
                 <span>Attendee</span>
               </button>
               <button
                 onClick={() => setViewMode('organizer')}
-                className={`flex items-center space-x-2 px-4 py-2 rounded-lg font-medium transition-all duration-200 ${
-                  viewMode === 'organizer'
-                    ? 'bg-purple-600 text-white shadow-md'
-                    : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
-                }`}
+                className={`flex items-center space-x-2 px-4 py-2 rounded-lg font-medium transition-all duration-200 ${viewMode === 'organizer'
+                  ? 'bg-purple-600 text-white shadow-md'
+                  : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+                  }`}
               >
                 <Calendar className="w-4 h-4" />
                 <span>Organizer</span>

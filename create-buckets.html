@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Supabase Storage Bucket Creator</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            text-align: center;
+        }
+        .step {
+            margin: 20px 0;
+            padding: 15px;
+            border-left: 4px solid #3b82f6;
+            background-color: #f8fafc;
+        }
+        .step h3 {
+            margin-top: 0;
+            color: #1e40af;
+        }
+        .code {
+            background-color: #1f2937;
+            color: #f9fafb;
+            padding: 15px;
+            border-radius: 5px;
+            font-family: 'Courier New', monospace;
+            overflow-x: auto;
+        }
+        .warning {
+            background-color: #fef3c7;
+            border: 1px solid #f59e0b;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 15px 0;
+        }
+        .success {
+            background-color: #d1fae5;
+            border: 1px solid #10b981;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 15px 0;
+        }
+        .button {
+            background-color: #3b82f6;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 10px 5px;
+        }
+        .button:hover {
+            background-color: #2563eb;
+        }
+        .button:disabled {
+            background-color: #9ca3af;
+            cursor: not-allowed;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🚀 Supabase Storage Bucket Setup</h1>
+        
+        <div class="warning">
+            <strong>⚠️ Important:</strong> This tool will help you create the required storage buckets for EventEase. 
+            You need to be logged into your Supabase dashboard to use this tool.
+        </div>
+
+        <div class="step">
+            <h3>Step 1: Open Supabase Dashboard</h3>
+            <p>Click the button below to open your Supabase project dashboard:</p>
+            <button class="button" onclick="openSupabaseDashboard()">Open Supabase Dashboard</button>
+        </div>
+
+        <div class="step">
+            <h3>Step 2: Navigate to Storage</h3>
+            <p>In the Supabase dashboard:</p>
+            <ol>
+                <li>Click on <strong>"Storage"</strong> in the left sidebar</li>
+                <li>You'll see the storage management interface</li>
+            </ol>
+        </div>
+
+        <div class="step">
+            <h3>Step 3: Create Required Buckets</h3>
+            <p>Create the following buckets by clicking "New bucket" for each:</p>
+            
+            <h4>Bucket 1: event-images</h4>
+            <div class="code">
+Name: event-images
+Public: ✅ (checked)
+File size limit: 5MB
+Allowed MIME types: image/jpeg, image/jpg, image/png, image/gif, image/webp
+            </div>
+
+            <h4>Bucket 2: profile-pictures</h4>
+            <div class="code">
+Name: profile-pictures
+Public: ✅ (checked)
+File size limit: 2MB
+Allowed MIME types: image/jpeg, image/jpg, image/png, image/gif, image/webp
+            </div>
+
+            <h4>Bucket 3: banners</h4>
+            <div class="code">
+Name: banners
+Public: ✅ (checked)
+File size limit: 10MB
+Allowed MIME types: image/jpeg, image/jpg, image/png, image/gif, image/webp
+            </div>
+
+            <h4>Bucket 4: documents</h4>
+            <div class="code">
+Name: documents
+Public: ✅ (checked)
+File size limit: 20MB
+Allowed MIME types: application/pdf, application/msword, application/vnd.openxmlformats-officedocument.wordprocessingml.document
+            </div>
+        </div>
+
+        <div class="step">
+            <h3>Step 4: Set Storage Policies (Optional)</h3>
+            <p>For each bucket, you can set up Row Level Security policies in the SQL Editor:</p>
+            <div class="code">
+-- Public read access
+CREATE POLICY "Public read access" ON storage.objects
+FOR SELECT USING (bucket_id = 'bucket-name');
+
+-- Authenticated upload access
+CREATE POLICY "Authenticated upload access" ON storage.objects
+FOR INSERT WITH CHECK (bucket_id = 'bucket-name' AND auth.role() = 'authenticated');
+
+-- Authenticated update access
+CREATE POLICY "Authenticated update access" ON storage.objects
+FOR UPDATE USING (bucket_id = 'bucket-name' AND auth.role() = 'authenticated');
+
+-- Authenticated delete access
+CREATE POLICY "Authenticated delete access" ON storage.objects
+FOR DELETE USING (bucket_id = 'bucket-name' AND auth.role() = 'authenticated');
+            </div>
+            <p><em>Replace 'bucket-name' with the actual bucket name (event-images, profile-pictures, etc.)</em></p>
+        </div>
+
+        <div class="step">
+            <h3>Step 5: Verify Setup</h3>
+            <p>After creating all buckets, run this command to verify they exist:</p>
+            <div class="code">node setup-storage-buckets-simple.js</div>
+            <button class="button" onclick="runVerification()">Run Verification</button>
+        </div>
+
+        <div class="success">
+            <strong>✅ Success!</strong> Once all buckets are created, your EventEase application will be able to handle file uploads and image management properly.
+        </div>
+
+        <div class="step">
+            <h3>Need Help?</h3>
+            <p>If you encounter any issues:</p>
+            <ul>
+                <li>Check the <code>STORAGE_SETUP.md</code> file for detailed instructions</li>
+                <li>Ensure you have the correct permissions in your Supabase project</li>
+                <li>Verify that all bucket names match exactly (case-sensitive)</li>
+            </ul>
+        </div>
+    </div>
+
+    <script>
+        function openSupabaseDashboard() {
+            window.open('https://supabase.com/dashboard/project/vjdsijuyzhhlofmlzexe', '_blank');
+        }
+
+        function runVerification() {
+            // This would need to be run in a Node.js environment
+            alert('Please run "node setup-storage-buckets-simple.js" in your terminal to verify the setup.');
+        }
+    </script>
+</body>
+</html>

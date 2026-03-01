@@ -1,0 +1,105 @@
+/* Wave Animation Styles for Home Page White Sections */
+
+.waves-container {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 200px;
+  overflow: hidden;
+  pointer-events: none; /* Ensures waves don't interfere with content interaction */
+  z-index: 1; /* Keep waves behind content */
+}
+
+.wave {
+  background: rgba(255, 255, 255, 0.8); /* Semi-transparent white for subtle effect */
+  width: 200%;
+  height: 200%;
+  position: absolute;
+  bottom: 0;
+  left: -50%;
+  border-radius: 45%;
+  
+  /* Link the animation */
+  animation: moveWave 10s linear infinite;
+}
+
+/* Wave 1 - The back layer */
+.wave.one {
+  height: 180px;
+  bottom: 10px;
+  opacity: 0.2;
+  animation-duration: 15s;
+  background: rgba(139, 92, 246, 0.1); /* Very subtle purple tint */
+}
+
+/* Wave 2 - The middle layer */
+.wave.two {
+  height: 160px;
+  bottom: 20px;
+  opacity: 0.3;
+  animation-duration: 10s;
+  background: rgba(147, 51, 234, 0.15); /* Medium purple tint */
+}
+
+/* Wave 3 - The front layer */
+.wave.three {
+  height: 140px;
+  bottom: 30px;
+  opacity: 0.4;
+  animation-duration: 7s;
+  background: rgba(255, 255, 255, 0.8); /* Enhanced white for front layer */
+}
+
+/* Keyframes for the wave movement */
+@keyframes moveWave {
+  0% {
+    transform: translateX(0) rotate(0deg);
+  }
+  100% {
+    transform: translateX(-50%) rotate(360deg);
+  }
+}
+
+/* Responsive adjustments for mobile */
+@media (max-width: 768px) {
+  .waves-container {
+    height: 120px;
+  }
+  
+  .wave.one {
+    height: 100px;
+    bottom: 5px;
+  }
+  
+  .wave.two {
+    height: 80px;
+    bottom: 10px;
+  }
+  
+  .wave.three {
+    height: 60px;
+    bottom: 15px;
+  }
+}
+
+/* Ensure content stays above waves */
+.waves-container + * {
+  position: relative;
+  z-index: 2;
+}
+
+/* Performance optimization for animations */
+.wave {
+  will-change: transform;
+  backface-visibility: hidden;
+  perspective: 1000px;
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+  .wave {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+  }
+}

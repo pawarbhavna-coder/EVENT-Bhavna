@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Storage Upload</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .test-section {
+            margin: 20px 0;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        .success {
+            background: #d4edda;
+            color: #155724;
+            border-color: #c3e6cb;
+        }
+        .error {
+            background: #f8d7da;
+            color: #721c24;
+            border-color: #f5c6cb;
+        }
+        button {
+            background: #007bff;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background: #0056b3;
+        }
+        input[type="file"] {
+            margin: 10px 0;
+        }
+        .result {
+            margin: 10px 0;
+            padding: 10px;
+            border-radius: 5px;
+            font-family: monospace;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🧪 Test Storage Upload</h1>
+        
+        <div class="test-section">
+            <h3>Step 1: Test with Generated Image</h3>
+            <p>This creates a small test image and tries to upload it.</p>
+            <button onclick="testGeneratedImage()">Test Generated Image Upload</button>
+            <div id="generatedResult" class="result"></div>
+        </div>
+        
+        <div class="test-section">
+            <h3>Step 2: Test with Your Image</h3>
+            <p>Select an image file from your computer to test upload.</p>
+            <input type="file" id="imageFile" accept="image/*">
+            <button onclick="testImageUpload()">Test Image Upload</button>
+            <div id="uploadResult" class="result"></div>
+        </div>
+        
+        <div class="test-section">
+            <h3>Step 3: Check Bucket Access</h3>
+            <p>Test if we can access the storage buckets.</p>
+            <button onclick="testBucketAccess()">Test Bucket Access</button>
+            <div id="bucketResult" class="result"></div>
+        </div>
+    </div>
+
+    <script>
+        // Supabase configuration
+        const supabaseUrl = 'https://vjdsijuyzhhlofmlzexe.supabase.co';
+        const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZqZHNpanV5emhobG9mbWx6ZXhlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTU4NzcwNDQsImV4cCI6MjA3MTQ1MzA0NH0.T7pK7N0whtHSkXIXcttNFfyQMqtHlIQbVhYAe7s6UrM';
+        
+        const supabase = window.supabase.createClient(supabaseUrl, supabaseAnonKey);
+        
+        function showResult(elementId, message, isError = false) {
+            const element = document.getElementById(elementId);
+            element.textContent = message;
+            element.className = `result ${isError ? 'error' : 'success'}`;
+        }
+        
+        async function testGeneratedImage() {
+            showResult('generatedResult', 'Creating test image...');
+            
+            try {
+                // Create a small test image
+                const canvas = document.createElement('canvas');
+                canvas.width = 10;
+                canvas.height = 10;
+                const ctx = canvas.getContext('2d');
+                ctx.fillStyle = 'red';
+                ctx.fillRect(0, 0, 10, 10);
+                
+                // Convert to blob
+                const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
+                const testFile = new File([blob], 'test.png', { type: 'image/png' });
+                
+                showResult('generatedResult', `Created test image: ${testFile.type}, ${testFile.size} bytes\nTrying upload...`);
+                
+                // Upload to event-images bucket
+                const { data, error } = await supabase.storage
+                    .from('event-images')
+                    .upload(`test-${Date.now()}.png`, testFile);
+                
+                if (error) {
+                    showResult('generatedResult', `❌ Upload failed: ${error.message}`, true);
+                } else {
+                    showResult('generatedResult', `✅ Upload successful!\nPath: ${data.path}\nPublic URL: ${supabase.storage.from('event-images').getPublicUrl(data.path).data.publicUrl}`);
+                    
+                    // Clean up
+                    setTimeout(async () => {
+                        await supabase.storage.from('event-images').remove([data.path]);
+                        showResult('generatedResult', `✅ Upload successful!\nPath: ${data.path}\nPublic URL: ${supabase.storage.from('event-images').getPublicUrl(data.path).data.publicUrl}\n\n🧹 Test file cleaned up`);
+                    }, 2000);
+                }
+            } catch (err) {
+                showResult('generatedResult', `❌ Error: ${err.message}`, true);
+            }
+        }
+        
+        async function testImageUpload() {
+            const fileInput = document.getElementById('imageFile');
+            const file = fileInput.files[0];
+            
+            if (!file) {
+                showResult('uploadResult', 'Please select an image file first', true);
+                return;
+            }
+            
+            showResult('uploadResult', `Uploading ${file.name} (${file.type}, ${file.size} bytes)...`);
+            
+            try {
+                const { data, error } = await supabase.storage
+                    .from('event-images')
+                    .upload(`upload-${Date.now()}-${file.name}`, file);
+                
+                if (error) {
+                    showResult('uploadResult', `❌ Upload failed: ${error.message}`, true);
+                } else {
+                    showResult('uploadResult', `✅ Upload successful!\nPath: ${data.path}\nPublic URL: ${supabase.storage.from('event-images').getPublicUrl(data.path).data.publicUrl}`);
+                }
+            } catch (err) {
+                showResult('uploadResult', `❌ Error: ${err.message}`, true);
+            }
+        }
+        
+        async function testBucketAccess() {
+            showResult('bucketResult', 'Testing bucket access...');
+            
+            const buckets = ['event-images', 'profile-pictures', 'banners', 'documents'];
+            let results = [];
+            
+            for (const bucketName of buckets) {
+                try {
+                    const { error } = await supabase.storage
+                        .from(bucketName)
+                        .list('', { limit: 1 });
+                    
+                    if (error) {
+                        results.push(`❌ ${bucketName}: ${error.message}`);
+                    } else {
+                        results.push(`✅ ${bucketName}: Accessible`);
+                    }
+                } catch (err) {
+                    results.push(`❌ ${bucketName}: ${err.message}`);
+                }
+            }
+            
+            showResult('bucketResult', results.join('\n'));
+        }
+    </script>
+</body>
+</html>
+

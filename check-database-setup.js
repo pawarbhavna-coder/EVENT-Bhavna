@@ -2,14 +2,14 @@
 const { createClient } = require('@supabase/supabase-js');
 
 // Hardcoded Supabase configuration
-const supabaseUrl = 'https://vjdsijuyzhhlofmlzexe.supabase.co';
-const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZqZHNpanV5emhobG9mbWx6ZXhlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTU4NzcwNDQsImV4cCI6MjA3MTQ1MzA0NH0.T7pK7N0whtHSkXIXcttNFfyQMqtHlIQbVhYAe7s6UrM';
+const supabaseUrl = 'https://lalosqcsffemgqstgcwo.supabase.co';
+const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxhbG9zcWNzZmZlbWdxc3RnY3dvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIzNzc4ODYsImV4cCI6MjA4Nzk1Mzg4Nn0.Z-SiUJ4YwzkvgY2IhCHum9MmM-yYHCoiA2mJakck5cQ';
 
 const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
 async function checkDatabaseSetup() {
   console.log('🔍 Checking database setup for signup issues...\n');
-  
+
   try {
     // Check 1: Basic connection
     console.log('1. Testing database connection...');
@@ -17,7 +17,7 @@ async function checkDatabaseSetup() {
       .from('user_profiles')
       .select('count')
       .limit(1);
-    
+
     if (connectionError) {
       console.error('❌ Database connection failed:', connectionError.message);
       console.log('💡 Check your Supabase URL and API key');
@@ -32,7 +32,7 @@ async function checkDatabaseSetup() {
       .from('user_profiles')
       .select('*')
       .limit(1);
-    
+
     if (structureError) {
       console.error('❌ Table structure issue:', structureError.message);
       if (structureError.message.includes('relation "user_profiles" does not exist')) {
@@ -45,7 +45,7 @@ async function checkDatabaseSetup() {
 
     // Check 3: RLS policies
     console.log('\n3. Checking RLS policies...');
-    
+
     // Try to insert a test record (this will fail but show us the RLS status)
     const { error: rlsTestError } = await supabase
       .from('user_profiles')
@@ -55,12 +55,12 @@ async function checkDatabaseSetup() {
         full_name: 'Test User',
         role: 'attendee'
       });
-    
+
     if (rlsTestError) {
       if (rlsTestError.message.includes('permission denied') || rlsTestError.message.includes('RLS')) {
         console.log('⚠️ RLS is enabled (this is expected)');
         console.log('RLS Error:', rlsTestError.message);
-        
+
         if (rlsTestError.message.includes('no policies')) {
           console.log('💡 Solution: RLS policies are missing. Run the fix_user_creation.sql migration');
         } else {
@@ -77,7 +77,7 @@ async function checkDatabaseSetup() {
     console.log('\n4. Checking trigger function...');
     const { data: triggerCheck, error: triggerError } = await supabase
       .rpc('check_trigger_exists', { trigger_name: 'on_auth_user_created' });
-    
+
     if (triggerError) {
       console.log('⚠️ Cannot check trigger (function might not exist):', triggerError.message);
       console.log('💡 This is normal - the trigger check function is not implemented');
@@ -86,7 +86,7 @@ async function checkDatabaseSetup() {
     // Check 5: Auth configuration
     console.log('\n5. Checking auth configuration...');
     const { data: { user }, error: authError } = await supabase.auth.getUser();
-    
+
     if (authError) {
       console.log('ℹ️ No current user (this is expected for testing)');
     } else if (user) {
@@ -107,7 +107,7 @@ async function checkDatabaseSetup() {
     console.log('1. Run the fix_user_creation.sql migration in Supabase SQL Editor');
     console.log('2. Test signup again');
     console.log('3. Check browser console for detailed error messages');
-    
+
   } catch (error) {
     console.error('❌ Unexpected error during database check:', error);
   }

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { X, User, Mail, Lock, Eye, EyeOff, Building, Calendar } from 'lucide-react';
-import { useApp } from '../../contexts/AppContext';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/NewAuthContext';
 import { supabase } from '../../lib/supabaseConfig';
 
@@ -21,7 +21,7 @@ const UnifiedAuthModal: React.FC<AuthModalProps> = ({
   defaultRole = 'attendee',
   redirectTo
 }) => {
-  const { setCurrentView } = useApp();
+  const navigate = useNavigate();
   const { login, register } = useAuth();
   const [isLoginMode, setIsLoginMode] = useState(true);
   const [showPassword, setShowPassword] = useState(false);
@@ -83,74 +83,35 @@ const UnifiedAuthModal: React.FC<AuthModalProps> = ({
     setIsLoading(true);
     setErrors({});
 
+    // Helper to get destination URL based on role
+    const getRedirectUrl = (role: string) => {
+      if (redirectTo) return redirectTo;
+      switch (role) {
+        case 'organizer': return '/dashboard';
+        case 'admin': return '/admin/dashboard';
+        default: return '/dashboard';
+      }
+    };
+
     try {
       if (isLoginMode) {
         console.log('Attempting login for:', formData.email);
         await login(formData.email, formData.password, selectedRole);
-
-        // Handle redirection after successful login
-        if (redirectTo) {
-          setCurrentView(redirectTo as any);
-        } else {
-          // Default redirection based on role
-          switch (selectedRole) {
-            case 'organizer':
-              setCurrentView('organizer-dashboard');
-              break;
-            case 'admin':
-              setCurrentView('admin-dashboard');
-              break;
-            default:
-              setCurrentView('attendee-dashboard');
-          }
-        }
+        onLoginSuccess({} as any);
+        onClose();
+        navigate(getRedirectUrl(selectedRole));
+        return;
       } else {
         console.log('Attempting registration for:', formData.email, 'with role:', selectedRole);
         await register(formData.email, formData.password, formData.name, selectedRole, formData.company);
-
-        console.log('Registration completed, checking profile...');
-
-        // Wait a moment for profile creation
-        await new Promise(resolve => setTimeout(resolve, 2000));
-
-        // Check if profile was created
-        const { data: { user } } = await supabase.auth.getUser();
-        if (user) {
-          const { data: profile, error: profileError } = await supabase
-            .from('user_profiles')
-            .select('*')
-            .eq('id', user.id)
-            .single();
-
-          if (profileError) {
-            console.error('Profile check failed:', profileError);
-            setErrors({ general: 'Account created but profile setup failed. Please try logging in.' });
-            return;
-          } else {
-            console.log('Profile verified:', profile);
-            alert('Account created successfully! You are now logged in.');
-          }
-        }
-
-        // After registration, redirect to appropriate dashboard
-        if (redirectTo) {
-          setCurrentView(redirectTo as any);
-        } else {
-          switch (selectedRole) {
-            case 'organizer':
-              setCurrentView('organizer-dashboard');
-              break;
-            case 'admin':
-              setCurrentView('admin-dashboard');
-              break;
-            default:
-              setCurrentView('attendee-dashboard');
-          }
-        }
+        console.log('Registration successful.');
+        onLoginSuccess({} as any);
+        onClose();
+        navigate(getRedirectUrl(selectedRole));
+        return;
       }
 
-      onLoginSuccess({} as any);
-      onClose();
+      // (handled above per branch)
     } catch (error) {
       console.error('Auth error:', error);
       let errorMessage = 'Authentication failed. Please try again.';
@@ -239,8 +200,8 @@ const UnifiedAuthModal: React.FC<AuthModalProps> = ({
                     type="button"
                     onClick={() => setSelectedRole(role.value as UserRole)}
                     className={`p-3 rounded-lg border-2 transition-all duration-200 ${selectedRole === role.value
-                        ? 'border-indigo-500 bg-indigo-50 text-indigo-700'
-                        : 'border-gray-200 hover:border-gray-300'
+                      ? 'border-indigo-500 bg-indigo-50 text-indigo-700'
+                      : 'border-gray-200 hover:border-gray-300'
                       }`}
                   >
                     <role.icon className="w-5 h-5 mx-auto mb-1" />
@@ -413,7 +374,7 @@ const UnifiedAuthModal: React.FC<AuthModalProps> = ({
                   type="button"
                   onClick={() => {
                     onClose();
-                    setCurrentView('password-reset');
+                    navigate('/password-reset');
                   }}
                   className="text-sm text-indigo-600 hover:text-indigo-700 transition-colors duration-200"
                 >

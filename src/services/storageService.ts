@@ -1,9 +1,9 @@
 import { supabase } from '../lib/supabaseConfig';
-import { 
-  UploadResult, 
-  FileValidationResult, 
-  StorageConfig, 
-  StorageFile, 
+import {
+  UploadResult,
+  FileValidationResult,
+  StorageConfig,
+  StorageFile,
   ListFilesResult,
   STORAGE_BUCKETS,
   FILE_TYPES,
@@ -73,11 +73,11 @@ const generateUniqueFilename = (originalName: string, folder?: string): string =
   const randomString = Math.random().toString(36).substring(2, 8);
   const extension = originalName.split('.').pop();
   const baseName = originalName.split('.').slice(0, -1).join('.');
-  
+
   // Sanitize filename
   const sanitizedBaseName = baseName.replace(/[^a-zA-Z0-9-_]/g, '_');
   const filename = `${sanitizedBaseName}_${timestamp}_${randomString}.${extension}`;
-  
+
   return folder ? `${folder}/${filename}` : filename;
 };
 
@@ -86,16 +86,27 @@ const generateUniqueFilename = (originalName: string, folder?: string): string =
  */
 const checkBucketExists = async (bucketName: string): Promise<boolean> => {
   try {
-    // Try to list files in the bucket - if it works, the bucket exists
     const { error } = await supabase.storage
       .from(bucketName)
       .list('', { limit: 1 });
-    
-    // If there's no error, the bucket exists
-    return !error;
+
+    // No error → bucket exists and is accessible
+    if (!error) return true;
+
+    // Explicit "bucket not found" → bucket doesn't exist
+    const msg = error.message?.toLowerCase() || '';
+    if (msg.includes('bucket not found') || msg.includes('no such bucket')) {
+      return false;
+    }
+
+    // Any other error (e.g. RLS/permission) means bucket EXISTS
+    // but access is restricted — let the upload attempt proceed
+    // so we can surface the real error (permission denied vs missing bucket)
+    console.warn(`Bucket '${bucketName}' check error (bucket likely exists):`, error.message);
+    return true;
   } catch (error) {
     console.error('Error checking bucket existence:', error);
-    return false;
+    return true; // Assume exists; let upload handle the real error
   }
 };
 
@@ -103,7 +114,7 @@ const checkBucketExists = async (bucketName: string): Promise<boolean> => {
  * Uploads a file to Supabase Storage
  */
 export const uploadFile = async (
-  file: File, 
+  file: File,
   config: StorageConfig,
   customPath?: string
 ): Promise<UploadResult> => {
@@ -139,7 +150,7 @@ export const uploadFile = async (
 
     if (error) {
       console.error('Storage upload error:', error);
-      
+
       // Provide more helpful error messages
       if (error.message.includes('Bucket not found')) {
         return {
@@ -147,14 +158,14 @@ export const uploadFile = async (
           error: `Storage bucket '${config.bucket}' not found. Please set up storage buckets in Supabase dashboard. See STORAGE_SETUP.md for instructions.`
         };
       }
-      
+
       if (error.message.includes('Permission denied')) {
         return {
           success: false,
           error: `Permission denied. Please check storage policies for bucket '${config.bucket}'. See STORAGE_SETUP.md for instructions.`
         };
       }
-      
+
       return {
         success: false,
         error: `Upload failed: ${error.message}`
@@ -218,7 +229,7 @@ export const getPublicUrl = (bucket: string, path: string): string => {
   const { data } = supabase.storage
     .from(bucket)
     .getPublicUrl(path);
-  
+
   return data.publicUrl;
 };
 
@@ -240,9 +251,9 @@ export const listFiles = async (bucket: string, folder?: string): Promise<ListFi
 
   } catch (error) {
     console.error('List files error:', error);
-    return { 
-      data: null, 
-      error: error instanceof Error ? error.message : 'Unknown list error' 
+    return {
+      data: null,
+      error: error instanceof Error ? error.message : 'Unknown list error'
     };
   }
 };
@@ -262,7 +273,7 @@ export const uploadMultipleFiles = async (
   for (const file of files) {
     const result = await uploadFile(file, config, customPath);
     results.push(result);
-    
+
     if (result.success) {
       successCount++;
     } else {
@@ -292,10 +303,10 @@ export const uploadSpeakerImage = async (
   speakerId: string,
   eventId?: string
 ): Promise<UploadResult> => {
-  const customPath = eventId 
+  const customPath = eventId
     ? `events/${eventId}/speakers/${speakerId}/${file.name}`
     : `speakers/${speakerId}/${file.name}`;
-  
+
   return uploadFile(file, STORAGE_CONFIGS.PROFILE_PICTURES, customPath);
 };
 
@@ -460,12 +471,12 @@ export const storageService: {
    */
   deleteEventGallery: async (paths: string[]): Promise<UploadResult[]> => {
     const results: UploadResult[] = [];
-    
+
     for (const path of paths) {
       const result = await deleteFile(STORAGE_CONFIGS.EVENT_IMAGES.bucket, path);
       results.push(result);
     }
-    
+
     return results;
   },
 

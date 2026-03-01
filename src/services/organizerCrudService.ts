@@ -57,19 +57,19 @@ export interface Speaker {
 }
 
 export interface Sponsor {
-    id: string;
-    name: string;
-    logoUrl: string;
-    website: string;
-    tier: string;
+  id: string;
+  name: string;
+  logoUrl: string;
+  website: string;
+  tier: string;
 }
 
 export interface ScheduleItem {
-    id: string;
-    startTime: string;
-    endTime: string;
-    title: string;
-    description: string;
+  id: string;
+  startTime: string;
+  endTime: string;
+  title: string;
+  description: string;
 }
 
 
@@ -156,30 +156,30 @@ export interface TicketFormData {
 
 // Helper to transform raw Supabase event data into the OrganizerEvent format
 const transformDbEventToOrganizerEvent = (event: any): OrganizerEvent => ({
-    id: event.id,
-    organizer_id: event.organizer_id,
-    title: event.title,
-    description: event.description,
-    category: event.category,
-    event_date: new Date(event.start_date).toISOString().split('T')[0],
-    time: new Date(event.start_date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-    end_time: event.end_date ? new Date(event.end_date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : undefined,
-    venue: event.location || event.venue_name,
-    capacity: event.max_attendees || 0,
-    attendees: event.event_attendees?.[0]?.count || 0,
-    image_url: event.image_url,
-    status: event.status,
-    visibility: 'public', // Assuming default visibility
-    created_at: event.created_at,
-    updated_at: event.updated_at,
-    price: event.price,
-    organizer_name: event.organizer_name,
-    organizer_email: event.organizer_email,
-    organizer_phone: event.organizer_phone,
-    organizer_bio: event.organizer_bio,
-    organizer_image: event.organizer_image,
-    organizer_company: event.organizer_company,
-    organizer_website: event.organizer_website
+  id: event.id,
+  organizer_id: event.organizer_id,
+  title: event.title,
+  description: event.description,
+  category: event.category,
+  event_date: new Date(event.start_date).toISOString().split('T')[0],
+  time: new Date(event.start_date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+  end_time: event.end_date ? new Date(event.end_date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : undefined,
+  venue: event.location || event.venue_name,
+  capacity: event.max_attendees || 0,
+  attendees: event.event_attendees?.[0]?.count || 0,
+  image_url: event.image_url,
+  status: event.status,
+  visibility: 'public', // Assuming default visibility
+  created_at: event.created_at,
+  updated_at: event.updated_at,
+  price: event.price,
+  organizer_name: event.organizer_name,
+  organizer_email: event.organizer_email,
+  organizer_phone: event.organizer_phone,
+  organizer_bio: event.organizer_bio,
+  organizer_image: event.organizer_image,
+  organizer_company: event.organizer_company,
+  organizer_website: event.organizer_website
 });
 
 
@@ -205,9 +205,9 @@ class OrganizerCrudService {
   private async notifyEventListeners(organizerId?: string) {
     const { data: { user } } = await supabase.auth.getUser();
     const userId = organizerId || user?.id;
-    
+
     if (!userId) return;
-    
+
     const result = await this.getMyEvents(userId);
     if (result.success && result.events) {
       this.eventListeners.forEach(callback => callback(result.events!));
@@ -287,7 +287,9 @@ class OrganizerCrudService {
         if (uploadResult.success && uploadResult.url) {
           imageUrl = uploadResult.url;
         } else {
-          return { success: false, error: uploadResult.error || 'Failed to upload image' };
+          // Don't block event creation on image upload failure
+          // (e.g. storage bucket policies not yet configured)
+          console.warn('Image upload failed, continuing without image:', uploadResult.error);
         }
       }
 
@@ -362,64 +364,64 @@ class OrganizerCrudService {
       return { success: false, error: `Failed to fetch events: ${message}` };
     }
   }
-  
+
   async getPublishedEvents(): Promise<{ success: boolean; events?: OrganizerEvent[]; error?: string }> {
     try {
-        const { data, error } = await supabase
-            .from('events')
-            .select(`*, event_attendees(count)`)
-            .eq('status', 'published')
-            .order('start_date', { ascending: true });
+      const { data, error } = await supabase
+        .from('events')
+        .select(`*, event_attendees(count)`)
+        .eq('status', 'published')
+        .order('start_date', { ascending: true });
 
-        if (error) {
-            console.error('Get published events error:', error);
-            return { success: false, error: error.message };
-        }
+      if (error) {
+        console.error('Get published events error:', error);
+        return { success: false, error: error.message };
+      }
 
-        const events: OrganizerEvent[] = (data || []).map(transformDbEventToOrganizerEvent);
+      const events: OrganizerEvent[] = (data || []).map(transformDbEventToOrganizerEvent);
 
-        return { success: true, events };
+      return { success: true, events };
     } catch (error) {
-        const message = error instanceof Error ? error.message : 'An unexpected error occurred';
-        return { success: false, error: `Failed to fetch published events: ${message}` };
+      const message = error instanceof Error ? error.message : 'An unexpected error occurred';
+      return { success: false, error: `Failed to fetch published events: ${message}` };
     }
   }
 
 
   async getEventById(eventId: string): Promise<{ success: boolean; event?: OrganizerEvent; error?: string }> {
     try {
-        const { data: { user } } = await supabase.auth.getUser();
+      const { data: { user } } = await supabase.auth.getUser();
 
-        let query = supabase
-            .from('events')
-            .select(`*, event_attendees(count)`)
-            .eq('id', eventId);
+      let query = supabase
+        .from('events')
+        .select(`*, event_attendees(count)`)
+        .eq('id', eventId);
 
-        // If user is not logged in, they can only see published events
-        if (!user) {
-            query = query.eq('status', 'published');
-        } else {
-            // If logged in, they can see their own events (any status) OR any published event
-            query = query.or(`organizer_id.eq.${user.id},status.eq.published`);
-        }
+      // If user is not logged in, they can only see published events
+      if (!user) {
+        query = query.eq('status', 'published');
+      } else {
+        // If logged in, they can see their own events (any status) OR any published event
+        query = query.or(`organizer_id.eq.${user.id},status.eq.published`);
+      }
 
-        const { data, error } = await query.single();
-        
-        if (error) {
-            console.error('Get event by ID error:', error);
-            return { success: false, error: 'Event not found or you do not have permission to view it.' };
-        }
-        
-        if (!data) {
-            return { success: false, error: 'Event not found' };
-        }
+      const { data, error } = await query.single();
 
-        const event = transformDbEventToOrganizerEvent(data);
-        return { success: true, event };
+      if (error) {
+        console.error('Get event by ID error:', error);
+        return { success: false, error: 'Event not found or you do not have permission to view it.' };
+      }
+
+      if (!data) {
+        return { success: false, error: 'Event not found' };
+      }
+
+      const event = transformDbEventToOrganizerEvent(data);
+      return { success: true, event };
 
     } catch (error) {
-        const message = error instanceof Error ? error.message : 'An unexpected error occurred';
-        return { success: false, error: `Failed to fetch event: ${message}` };
+      const message = error instanceof Error ? error.message : 'An unexpected error occurred';
+      return { success: false, error: `Failed to fetch event: ${message}` };
     }
   }
 
@@ -444,7 +446,8 @@ class OrganizerCrudService {
         if (uploadResult.success && uploadResult.url) {
           imageUrl = uploadResult.url;
         } else {
-          return { success: false, error: uploadResult.error || 'Failed to upload image' };
+          // Don't block event update on image upload failure
+          console.warn('Image upload failed, continuing without image update:', uploadResult.error);
         }
       }
 
@@ -585,7 +588,7 @@ class OrganizerCrudService {
   }
 
   async getEventAnalytics(eventId: string): Promise<{ success: boolean; analytics?: OrganizerEventAnalytics; error?: string }> {
-     try {
+    try {
       const accessCheck = await this.checkOrganizerAccess();
       if (!accessCheck.success) {
         return { success: false, error: accessCheck.error };
@@ -610,7 +613,7 @@ class OrganizerCrudService {
   }
 
   async getEventAttendees(eventId: string): Promise<{ success: boolean; attendees?: OrganizerAttendee[]; error?: string }> {
-     try {
+    try {
       const accessCheck = await this.checkOrganizerAccess();
       if (!accessCheck.success) {
         return { success: false, error: accessCheck.error };
@@ -624,23 +627,23 @@ class OrganizerCrudService {
         // *** FIX: Correctly map database status to frontend check_in_status ***
         let check_in_status: 'pending' | 'checked-in' | 'no-show' = 'pending';
         if (attendee.status === 'attended') {
-            check_in_status = 'checked-in';
+          check_in_status = 'checked-in';
         } else if (attendee.status === 'no-show') {
-            check_in_status = 'no-show';
+          check_in_status = 'no-show';
         } else if (attendee.status === 'registered') {
-            check_in_status = 'pending';
+          check_in_status = 'pending';
         }
 
         return {
-            id: attendee.id,
-            event_id: attendee.event_id,
-            user_id: attendee.user_id,
-            ticket_type_id: attendee.ticket_type,
-            registration_date: attendee.registration_date,
-            check_in_status: check_in_status,
-            payment_status: attendee.payment_status,
-            additional_info: attendee.notes ? { notes: attendee.notes } : {},
-            user: { full_name: attendee.user_profiles?.full_name || 'Unknown', email: attendee.user_profiles?.email || 'unknown@email.com' }
+          id: attendee.id,
+          event_id: attendee.event_id,
+          user_id: attendee.user_id,
+          ticket_type_id: attendee.ticket_type,
+          registration_date: attendee.registration_date,
+          check_in_status: check_in_status,
+          payment_status: attendee.payment_status,
+          additional_info: attendee.notes ? { notes: attendee.notes } : {},
+          user: { full_name: attendee.user_profiles?.full_name || 'Unknown', email: attendee.user_profiles?.email || 'unknown@email.com' }
         };
       });
       return { success: true, attendees };
@@ -649,7 +652,7 @@ class OrganizerCrudService {
     }
   }
 
-    async updateAttendeeStatus(attendeeId: string, status: 'pending' | 'checked-in' | 'no-show'): Promise<{ success: boolean; error?: string }> {
+  async updateAttendeeStatus(attendeeId: string, status: 'pending' | 'checked-in' | 'no-show'): Promise<{ success: boolean; error?: string }> {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
@@ -659,17 +662,17 @@ class OrganizerCrudService {
       // *** FIX: Map frontend status to the correct database status value ***
       let dbStatus: string;
       switch (status) {
-          case 'checked-in':
-              dbStatus = 'attended';
-              break;
-          case 'pending':
-              dbStatus = 'registered';
-              break;
-          case 'no-show':
-              dbStatus = 'no-show'; // Assumes you will add 'no-show' to your DB check constraint
-              break;
-          default:
-              dbStatus = 'registered';
+        case 'checked-in':
+          dbStatus = 'attended';
+          break;
+        case 'pending':
+          dbStatus = 'registered';
+          break;
+        case 'no-show':
+          dbStatus = 'no-show'; // Assumes you will add 'no-show' to your DB check constraint
+          break;
+        default:
+          dbStatus = 'registered';
       }
 
       // *** FIX: Update the 'status' column, not 'check_in_status' ***
@@ -682,18 +685,18 @@ class OrganizerCrudService {
         console.error('Update attendee status error:', error);
         // Provide a more helpful error if the 'no-show' status doesn't exist in the DB
         if (error.message.includes('check constraint')) {
-            return { success: false, error: "Database error: The 'no-show' status is not allowed. Please update your database schema." };
+          return { success: false, error: "Database error: The 'no-show' status is not allowed. Please update your database schema." };
         }
         return { success: false, error: error.message };
       }
 
       return { success: true };
     } catch (error) {
-        const message = error instanceof Error ? error.message : 'An unexpected error occurred';
+      const message = error instanceof Error ? error.message : 'An unexpected error occurred';
       return { success: false, error: `Failed to update status: ${message}` };
     }
   }
-  
+
   async createTicketType(eventId: string, ticketData: TicketFormData): Promise<{ success: boolean; ticket?: OrganizerTicketType; error?: string }> {
     try {
       const { data: { user } } = await supabase.auth.getUser();
@@ -931,7 +934,7 @@ class OrganizerCrudService {
       return { success: false, error: 'Failed to fetch schedule: ' + error.message };
     }
   }
-  
+
   async saveEventSpeakers(eventId: string, speakers: any[]): Promise<{ success: boolean; error?: string }> {
     try {
       const speakerUpserts = speakers.map(s => ({
@@ -969,39 +972,39 @@ class OrganizerCrudService {
   }
 
   async saveEventSponsors(eventId: string, sponsors: any[]): Promise<{ success: boolean; error?: string }> {
-      try {
-          const sponsorUpserts = sponsors.map(s => ({
-            name: s.name,
-            logo_url: s.logo || s.logoUrl,
-            website_url: s.website,
-            tier: s.tier,
-            description: s.description || ''
-          }));
+    try {
+      const sponsorUpserts = sponsors.map(s => ({
+        name: s.name,
+        logo_url: s.logo || s.logoUrl,
+        website_url: s.website,
+        tier: s.tier,
+        description: s.description || ''
+      }));
 
-          const { data: upsertedSponsors, error: upsertError } = await supabase
-            .from('sponsors')
-            .upsert(sponsorUpserts, { onConflict: 'name' })
-            .select('id, name');
+      const { data: upsertedSponsors, error: upsertError } = await supabase
+        .from('sponsors')
+        .upsert(sponsorUpserts, { onConflict: 'name' })
+        .select('id, name');
 
-          if (upsertError) throw upsertError;
+      if (upsertError) throw upsertError;
 
-          await supabase.from('event_sponsors').delete().eq('event_id', eventId);
+      await supabase.from('event_sponsors').delete().eq('event_id', eventId);
 
-          const sponsorLinks = upsertedSponsors.map(us => ({
-              event_id: eventId,
-              sponsor_id: us.id
-          }));
+      const sponsorLinks = upsertedSponsors.map(us => ({
+        event_id: eventId,
+        sponsor_id: us.id
+      }));
 
-          if (sponsorLinks.length > 0) {
-            const { error: linkError } = await supabase.from('event_sponsors').insert(sponsorLinks);
-            if (linkError) throw linkError;
-          }
-
-          return { success: true };
-      } catch (error: any) {
-          console.error('Error saving sponsors:', error);
-          return { success: false, error: 'Failed to save sponsors: ' + error.message };
+      if (sponsorLinks.length > 0) {
+        const { error: linkError } = await supabase.from('event_sponsors').insert(sponsorLinks);
+        if (linkError) throw linkError;
       }
+
+      return { success: true };
+    } catch (error: any) {
+      console.error('Error saving sponsors:', error);
+      return { success: false, error: 'Failed to save sponsors: ' + error.message };
+    }
   }
 
   async saveEventSchedule(eventId: string, scheduleItems: any[]): Promise<{ success: boolean; error?: string }> {
@@ -1087,12 +1090,12 @@ class OrganizerCrudService {
       if (error) {
         throw error;
       }
-      
+
       return { success: true };
     } catch (error: any) {
-        const errorMessage = error.message || 'An unexpected error occurred.';
-        console.error('Admin delete user error:', errorMessage);
-        return { success: false, error: 'Failed to delete user: ' + errorMessage };
+      const errorMessage = error.message || 'An unexpected error occurred.';
+      console.error('Admin delete user error:', errorMessage);
+      return { success: false, error: 'Failed to delete user: ' + errorMessage };
     }
   }
 
@@ -1103,7 +1106,7 @@ class OrganizerCrudService {
         .from('events')
         .delete()
         .eq('id', eventId);
-      
+
       if (error) throw error;
 
       return { success: true };
@@ -1113,21 +1116,21 @@ class OrganizerCrudService {
   }
 
   async getEventsForOrganizer(organizerId: string): Promise<{ success: boolean, events?: OrganizerEvent[] }> {
-      const { data, error } = await supabase
-        .from('events')
-        .select('*')
-        .eq('organizer_id', organizerId);
-      if (error) return { success: false, events: [] };
-      return { success: true, events: data.map(transformDbEventToOrganizerEvent) };
+    const { data, error } = await supabase
+      .from('events')
+      .select('*')
+      .eq('organizer_id', organizerId);
+    if (error) return { success: false, events: [] };
+    return { success: true, events: data.map(transformDbEventToOrganizerEvent) };
   }
 
   async getEventRegistrationsForUser(userId: string): Promise<{ success: boolean, registrations?: any[] }> {
-      const { data, error } = await supabase
-        .from('event_attendees')
-        .select('*, events(title)')
-        .eq('user_id', userId);
-      if (error) return { success: false, registrations: [] };
-      return { success: true, registrations: data };
+    const { data, error } = await supabase
+      .from('event_attendees')
+      .select('*, events(title)')
+      .eq('user_id', userId);
+    if (error) return { success: false, registrations: [] };
+    return { success: true, registrations: data };
   }
 }
 

@@ -1,5 +1,5 @@
-import React, { Suspense, lazy } from 'react';
-import { Routes, Route, Navigate } from 'react-router-dom';
+import React, { Suspense, lazy, useEffect } from 'react';
+import { Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/NewAuthContext';
 import { AppProvider } from './contexts/AppContext';
 import ProtectedRoute from './components/common/ProtectedRoute';
@@ -85,8 +85,27 @@ const LoadingFallback: React.FC = () => (
 const AppContent: React.FC = () => {
   const { user, profile, isAuthenticated, loading } = useAuth();
   const { isModalOpen, closeModal } = useAdminShortcut();
+  const navigate = useNavigate();
+  const location = useLocation();
 
   console.log('AppContent render:', { user, profile, isAuthenticated });
+
+  // Auto-redirect to the correct dashboard after login based on REAL profile role
+  useEffect(() => {
+    if (!loading && isAuthenticated && profile) {
+      const publicPaths = ['/', '/discover', '/speakers', '/organizers', '/blog',
+        '/resources', '/press', '/about', '/pricing', '/contact', '/terms', '/privacy'];
+      const isOnPublicPage = publicPaths.includes(location.pathname);
+
+      if (isOnPublicPage) {
+        if (profile.role === 'admin') {
+          navigate('/admin/dashboard', { replace: true });
+        } else {
+          navigate('/dashboard', { replace: true });
+        }
+      }
+    }
+  }, [isAuthenticated, profile, loading, location.pathname, navigate]);
 
   // Block rendering until Supabase has fully resolved auth state
   if (loading || user === undefined || (isAuthenticated && user && !profile)) {

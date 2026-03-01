@@ -35,50 +35,67 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   useEffect(() => {
     // This function runs once on app startup to check for an existing session.
+    const ensureProfile = async (sessionUser: any): Promise<UserProfile | null> => {
+      // Try to fetch existing profile
+      const { data: userProfile, error: profileError } = await supabase
+        .from('user_profiles')
+        .select('*')
+        .eq('id', sessionUser.id)
+        .maybeSingle();
+
+      if (userProfile) return userProfile;
+
+      // Profile missing — try to create one from user metadata
+      console.warn('Profile not found, attempting to create from metadata...', profileError?.message);
+      const meta = sessionUser.user_metadata || {};
+      const newProfile = {
+        id: sessionUser.id,
+        full_name: meta.full_name || sessionUser.email?.split('@')[0] || 'User',
+        avatar_url: meta.avatar_url || '',
+        role: (meta.role as UserProfile['role']) || 'attendee',
+      };
+
+      const { data: created, error: createError } = await supabase
+        .from('user_profiles')
+        .upsert(newProfile, { onConflict: 'id' })
+        .select()
+        .maybeSingle();
+
+      if (createError) {
+        console.error('Could not create profile:', createError.message);
+        return null;
+      }
+      console.log('Profile created successfully:', created);
+      return created;
+    };
+
     const getInitialSession = async () => {
       try {
         console.log('Checking initial session...');
         const { data: { session } } = await supabase.auth.getSession();
-        
+
         if (session?.user) {
-          // A user session exists. Now, we MUST verify their profile exists.
           console.log('Session found. Fetching user profile for:', session.user.id);
-          const { data: userProfile, error: profileError } = await supabase
-            .from('user_profiles')
-            .select('*')
-            .eq('id', session.user.id)
-            .maybeSingle();
-          
-          // **THE CRITICAL FIX IS HERE**
-          // If there's an error fetching the profile OR if the profile is null,
-          // the user's state is inconsistent. We must log them out to prevent a stuck loading state.
-          if (profileError || !userProfile) {
-            console.error('Profile not found or error fetching profile. Forcing logout.', profileError?.message);
+          const userProfile = await ensureProfile(session.user);
+
+          if (!userProfile) {
+            // Even creation failed — sign out to avoid broken state
+            console.error('Profile unavailable. Signing out.');
             await supabase.auth.signOut();
-            setSession(null);
-            setUser(null);
-            setProfile(null);
+            setSession(null); setUser(null); setProfile(null);
           } else {
-            // SUCCESS! Both session and profile are valid. Set the state.
             console.log('User profile loaded successfully:', userProfile);
             setSession(session);
             setUser(session.user);
             setProfile(userProfile);
           }
         } else {
-            // No user session found. Ensure all state is clear.
-            setSession(null);
-            setUser(null);
-            setProfile(null);
+          setSession(null); setUser(null); setProfile(null);
         }
       } catch (error) {
         console.error('Error during initial session check:', error);
-        // Ensure we clear state even on unexpected errors.
-        setSession(null);
-        setUser(null);
-        setProfile(null);
+        setSession(null); setUser(null); setProfile(null);
       } finally {
-        // This is crucial: only set loading to false AFTER all checks are complete.
         setLoading(false);
       }
     };
@@ -90,21 +107,13 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       console.log('Auth state change event:', event);
 
       if (event === 'SIGNED_IN' && session?.user) {
-        // Use async IIFE to avoid deadlock
         (async () => {
           setLoading(true);
-          const { data: userProfile, error: profileError } = await supabase
-            .from('user_profiles')
-            .select('*')
-            .eq('id', session.user.id)
-            .maybeSingle();
-
-          if (profileError || !userProfile) {
-            console.error('Profile fetch failed on SIGNED_IN. Logging out.');
+          const userProfile = await ensureProfile(session.user);
+          if (!userProfile) {
+            console.error('Profile unavailable on SIGNED_IN. Logging out.');
             await supabase.auth.signOut();
-            setProfile(null);
-            setUser(null);
-            setSession(null);
+            setProfile(null); setUser(null); setSession(null);
           } else {
             setProfile(userProfile);
             setUser(session.user);
@@ -125,7 +134,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     return () => subscription.unsubscribe();
   }, []);
 
-  const login = async (email: string, password: string, role?: 'attendee' | 'organizer' | 'admin') => {
+  const login = async (email: string, password: string, _role?: 'attendee' | 'organizer' | 'admin') => {
     try {
       const { error } = await supabase.auth.signInWithPassword({ email, password });
       if (error) throw error;
@@ -138,9 +147,9 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const register = async (email: string, password: string, fullName: string, role: 'attendee' | 'organizer' | 'admin', company?: string) => {
     try {
       console.log('Starting registration process...', { email, fullName, role });
-      
-      const { error } = await supabase.auth.signUp({ 
-        email, 
+
+      const { error } = await supabase.auth.signUp({
+        email,
         password,
         options: {
           data: {
@@ -150,14 +159,14 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           }
         }
       });
-      
+
       if (error) {
         console.error('Supabase signup error:', error);
         throw error;
       }
-      
+
       console.log('Registration successful, waiting for auth state change to fetch profile...');
-      
+
     } catch (error) {
       console.error('Registration error:', error);
       throw error;

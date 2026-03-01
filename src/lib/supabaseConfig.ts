@@ -5,11 +5,11 @@ import { createClient } from '@supabase/supabase-js'
 // Env vars override these if set (useful for CI / other deployments).
 const supabaseUrl =
   import.meta.env.VITE_SUPABASE_URL ||
-  'https://vjdsijuyzhhlofmlzexe.supabase.co'
+  'https://lalosqcsffemgqstgcwo.supabase.co'
 
 const supabaseAnonKey =
   import.meta.env.VITE_SUPABASE_ANON_KEY ||
-  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZqZHNpanV5emhobG9mbWx6ZXhlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTU4NzcwNDQsImV4cCI6MjA3MTQ1MzA0NH0.T7pK7N0whtHSkXIXcttNFfyQMqtHlIQbVhYAe7s6UrM'
+  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxhbG9zcWNzZmZlbWdxc3RnY3dvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIzNzc4ODYsImV4cCI6MjA4Nzk1Mzg4Nn0.Z-SiUJ4YwzkvgY2IhCHum9MmM-yYHCoiA2mJakck5cQ'
 
 // Create Supabase client with environment variables
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {

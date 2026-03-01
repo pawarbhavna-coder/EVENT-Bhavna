@@ -304,8 +304,8 @@ const UnifiedDashboard: React.FC = () => {
                     <p className="text-xs text-gray-500">{new Date(event.event_date).toLocaleDateString()}</p>
                   </div>
                   <span className={`px-2 py-1 rounded-full text-xs font-medium capitalize ${event.status === 'published' ? 'bg-green-100 text-green-800' :
-                    ent.status === 'draft' ? 'bg-orange-100 text-orange-800' :
-                      'bgray-100 text-gray-800'
+                    event.status === 'draft' ? 'bg-orange-100 text-orange-800' :
+                      'bg-gray-100 text-gray-800'
                     }`}>
                     {event.status}
                   </span>

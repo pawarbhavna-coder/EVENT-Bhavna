@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Home, Calendar, Users, Bell, User, Settings, Menu, X, Ticket, BookOpen, LogOut, ChevronDown, Plus, BarChart3, Mail, ShoppingCart, Twitch as Switch } from 'lucide-react';
+import { Home, Calendar, Users, Bell, User, Settings, Menu, X, Ticket, BookOpen, LogOut, ChevronDown, Plus, BarChart3, ShoppingCart, Twitch as Switch, Search } from 'lucide-react';
 import { useAuth } from '../../contexts/NewAuthContext';
 
 type ViewMode = 'attendee' | 'organizer';
@@ -20,6 +20,7 @@ const UnifiedNavigation: React.FC = () => {
 
   const organizerNavItems = [
     { label: 'Dashboard', path: '/dashboard', icon: Home },
+    { label: 'Discover', path: '/discover', icon: Search },
     { label: 'Create Event', path: '/organizer/create-event', icon: Plus },
     { label: 'My Events', path: '/my-events', icon: Calendar },
     { label: 'Attendees', path: '/organizer/attendee-management', icon: Users },
@@ -211,8 +212,8 @@ const UnifiedNavigation: React.FC = () => {
 
         {/* Mobile Navigation */}
         <div className={`md:hidden transition-all duration-300 ease-in-out ${isMobileMenuOpen
-            ? 'max-h-screen opacity-100 transform translate-y-0'
-            : 'max-h-0 opacity-0 overflow-hidden transform -translate-y-2'
+          ? 'max-h-screen opacity-100 transform translate-y-0'
+          : 'max-h-0 opacity-0 overflow-hidden transform -translate-y-2'
           }`}>
           <div className="px-2 pt-2 pb-3 space-y-1 bg-white/95 backdrop-blur-md rounded-xl mt-2 shadow-xl border border-gray-200">
             {/* View Mode Indicator */}

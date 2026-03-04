@@ -1,7 +1,7 @@
 // src/components/pages/EventDiscoveryPage.tsx
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Search, Filter, Calendar, MapPin, Users, Star, ArrowRight, Loader2 } from 'lucide-react';
+import { Search, Filter, Calendar, MapPin, Users, ArrowRight, Loader2 } from 'lucide-react';
 import { useAuth } from '../../contexts/NewAuthContext';
 import LoginPromptOverlay from '../common/LoginPromptOverlay';
 import UnifiedAuthModal from '../auth/UnifiedAuthModal';
@@ -18,38 +18,58 @@ const EventDiscoveryPage: React.FC = () => {
   const { isAuthenticated } = useAuth();
   const [showLoginPrompt, setShowLoginPrompt] = useState(false);
   const [showAuthModal, setShowAuthModal] = useState(false);
-  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null); // used for organizer-specific UI in future
+
+  const [error, setError] = useState<string | null>(null);
+
+  const fetchEvents = async () => {
+    setIsLoading(true);
+    setError(null);
+    const result = await organizerCrudService.getPublishedEvents();
+    if (result.success && result.events) {
+      setEvents(result.events);
+    } else {
+      setError(result.error || 'Failed to load events');
+    }
+    setIsLoading(false);
+  };
 
   useEffect(() => {
-    const fetchEvents = async () => {
-      setIsLoading(true);
-      const result = await organizerCrudService.getPublishedEvents();
-      if (result.success && result.events) {
-        setEvents(result.events);
-      }
-
-      // Get current user ID for organizer check
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user) {
-        setCurrentUserId(user.id);
-      }
-
-      setIsLoading(false);
-    };
-
+    // Initial fetch
     fetchEvents();
+
+    // Get current user ID for organizer check
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      if (user) setCurrentUserId(user.id);
+    });
+
+    // Real-time subscription — re-fetch whenever any event row changes
+    const channel = supabase
+      .channel('discover-events-realtime')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'events' },
+        () => {
+          fetchEvents();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, []);
 
   const categories = [
-    'All', 'Technology', 'Marketing', 'Business', 'Design', 
+    'All', 'Technology', 'Marketing', 'Business', 'Design',
     'Healthcare', 'Education', 'Finance', 'Sustainability'
   ];
 
   const filteredEvents = events.filter(event => {
     const matchesSearch = event.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         (event.description || '').toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesCategory = selectedCategory === 'all' || 
-                           event.category.toLowerCase() === selectedCategory.toLowerCase();
+      (event.description || '').toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesCategory = selectedCategory === 'all' ||
+      event.category.toLowerCase() === selectedCategory.toLowerCase();
     return matchesSearch && matchesCategory;
   });
 
@@ -120,11 +140,10 @@ const EventDiscoveryPage: React.FC = () => {
               <button
                 key={category}
                 onClick={() => setSelectedCategory(category.toLowerCase())}
-                className={`px-4 py-2 rounded-full font-medium transition-all duration-300 transform hover:scale-105 ${
-                  selectedCategory === category.toLowerCase()
-                    ? 'bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-lg'
-                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                }`}
+                className={`px-4 py-2 rounded-full font-medium transition-all duration-300 transform hover:scale-105 ${selectedCategory === category.toLowerCase()
+                  ? 'bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-lg'
+                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  }`}
               >
                 {category}
               </button>
@@ -139,21 +158,19 @@ const EventDiscoveryPage: React.FC = () => {
             <div className="flex items-center space-x-2">
               <button
                 onClick={() => setViewMode('list')}
-                className={`px-4 py-2 rounded-lg font-medium transition-colors duration-200 ${
-                  viewMode === 'list'
-                    ? 'bg-indigo-600 text-white'
-                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                }`}
+                className={`px-4 py-2 rounded-lg font-medium transition-colors duration-200 ${viewMode === 'list'
+                  ? 'bg-indigo-600 text-white'
+                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  }`}
               >
                 List View
               </button>
               <button
                 onClick={() => setViewMode('map')}
-                className={`px-4 py-2 rounded-lg font-medium transition-colors duration-200 ${
-                  viewMode === 'map'
-                    ? 'bg-indigo-600 text-white'
-                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                }`}
+                className={`px-4 py-2 rounded-lg font-medium transition-colors duration-200 ${viewMode === 'map'
+                  ? 'bg-indigo-600 text-white'
+                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  }`}
               >
                 Map View
               </button>
@@ -162,9 +179,23 @@ const EventDiscoveryPage: React.FC = () => {
         </div>
 
         {isLoading ? (
-            <div className="flex justify-center items-center py-20">
-                <Loader2 className="w-12 h-12 animate-spin text-indigo-600" />
+          <div className="flex justify-center items-center py-20">
+            <Loader2 className="w-12 h-12 animate-spin text-indigo-600" />
+          </div>
+        ) : error ? (
+          <div className="text-center py-20">
+            <div className="bg-white rounded-2xl p-12 shadow-lg">
+              <Calendar className="w-16 h-16 text-red-400 mx-auto mb-4" />
+              <h3 className="text-xl font-semibold text-gray-900 mb-2">Failed to load events</h3>
+              <p className="text-gray-600 mb-6">{error}</p>
+              <button
+                onClick={fetchEvents}
+                className="bg-indigo-600 text-white px-6 py-3 rounded-lg hover:bg-indigo-700 transition-colors duration-200"
+              >
+                Try Again
+              </button>
             </div>
+          </div>
         ) : viewMode === 'list' ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {filteredEvents.map((event, index) => (
@@ -189,16 +220,16 @@ const EventDiscoveryPage: React.FC = () => {
                     </span>
                   </div>
                 </div>
-                
+
                 <div className="p-6">
                   <h3 className="text-xl font-bold text-gray-900 mb-3 group-hover:text-indigo-600 transition-colors duration-200 line-clamp-2">
                     {event.title}
                   </h3>
-                  
+
                   <p className="text-gray-600 mb-4 line-clamp-2">
                     {event.description}
                   </p>
-                  
+
                   <div className="space-y-2 mb-4">
                     <div className="flex items-center space-x-2 text-sm text-gray-600">
                       <Calendar className="w-4 h-4 text-indigo-600" />
@@ -224,7 +255,7 @@ const EventDiscoveryPage: React.FC = () => {
                       />
                     </div>
                   </div>
-                  
+
                   <div className="flex items-center justify-between">
                     <span className="text-sm text-gray-500">by {event.organizer_name || 'Organizer'}</span>
                     <ArrowRight className="w-4 h-4 text-indigo-600 group-hover:translate-x-1 transition-transform duration-200" />

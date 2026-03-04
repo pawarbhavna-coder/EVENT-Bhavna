@@ -93,7 +93,7 @@ const AppContent: React.FC = () => {
   // Auto-redirect to the correct dashboard after login based on REAL profile role
   useEffect(() => {
     if (!loading && isAuthenticated && profile) {
-      const publicPaths = ['/', '/discover', '/speakers', '/organizers', '/blog',
+      const publicPaths = ['/', '/speakers', '/organizers', '/blog',
         '/resources', '/press', '/about', '/pricing', '/contact', '/terms', '/privacy'];
       const isOnPublicPage = publicPaths.includes(location.pathname);
 

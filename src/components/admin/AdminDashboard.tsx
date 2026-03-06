@@ -266,7 +266,7 @@ const AdminDashboard: React.FC = () => {
 
       if (profileError) throw new Error(profileError.message);
 
-      setAddUserMsg({ type: 'success', text: `User "${newUserName}" created successfully! They will receive a confirmation email.` });
+      setAddUserMsg({ type: 'success', text: `User "${newUserName}" created successfully! They can now log in with their email and password.` });
       setNewUserEmail('');
       setNewUserName('');
       setNewUserPassword('');

@@ -5,7 +5,7 @@ import { organizerCrudService, OrganizerEvent } from '../../services/organizerCr
 import { supabase } from '../../lib/supabaseConfig';
 import {
   Loader2, Users, Calendar, Trash2, AlertTriangle, X,
-  Eye, TrendingUp, Shield, UserPlus, Edit, BarChart3,
+  Eye, TrendingUp, Shield, Edit, BarChart3,
   PieChart, Activity, ArrowUpRight, ArrowDownRight
 } from 'lucide-react';
 import '../../styles/admin-panel.css';
@@ -115,13 +115,7 @@ const AdminDashboard: React.FC = () => {
   const [activityUser, setActivityUser] = useState<AppUser | null>(null);
   const [userActivity, setUserActivity] = useState<UserActivity | null>(null);
   const [isActivityLoading, setIsActivityLoading] = useState(false);
-  const [showAddUserModal, setShowAddUserModal] = useState(false);
-  const [newUserEmail, setNewUserEmail] = useState('');
-  const [newUserName, setNewUserName] = useState('');
-  const [newUserPassword, setNewUserPassword] = useState('');
-  const [newUserRole, setNewUserRole] = useState('attendee');
-  const [isAddingUser, setIsAddingUser] = useState(false);
-  const [addUserMsg, setAddUserMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+
 
   const fetchData = async () => {
     setIsLoading(true);
@@ -236,42 +230,7 @@ const AdminDashboard: React.FC = () => {
     setIsActivityLoading(false);
   };
 
-  const handleAddUser = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setAddUserMsg(null);
-    setIsAddingUser(true);
-    try {
-      // Step 1: Create auth user via signUp
-      // The database trigger 'on_auth_user_created' will automatically insert the user_profile
-      const { data: authData, error: authError } = await supabase.auth.signUp({
-        email: newUserEmail,
-        password: newUserPassword,
-        options: {
-          data: {
-            full_name: newUserName,
-            role: newUserRole
-          }
-        },
-      });
 
-      if (authError) throw new Error(authError.message);
-      const userId = authData.user?.id;
-      if (!userId) throw new Error('User creation failed — no user ID returned.');
-
-      setAddUserMsg({ type: 'success', text: `User "${newUserName}" created successfully! They can now log in with their email and password.` });
-      setNewUserEmail('');
-      setNewUserName('');
-      setNewUserPassword('');
-      setNewUserRole('attendee');
-      // Refresh users list
-      const result = await organizerCrudService.getAllUsers();
-      if (result.success && result.users) setUsers(result.users);
-    } catch (err: any) {
-      setAddUserMsg({ type: 'error', text: err.message || 'Failed to create user.' });
-    } finally {
-      setIsAddingUser(false);
-    }
-  };
 
   const getRoleBadge = (role: string) => {
     const map: Record<string, string> = {
@@ -320,13 +279,6 @@ const AdminDashboard: React.FC = () => {
               </h1>
               <p>Welcome back, {profile?.full_name || 'Admin'} — here's your platform overview.</p>
             </div>
-            <button
-              onClick={() => setShowAddUserModal(true)}
-              className="admin-btn admin-btn-primary"
-            >
-              <UserPlus className="w-4 h-4" />
-              Add User
-            </button>
           </div>
         </div>
 
@@ -610,70 +562,7 @@ const AdminDashboard: React.FC = () => {
         </div>
       )}
 
-      {/* ── Add User Modal ────────────────────────────────────────────────── */}
-      {showAddUserModal && (
-        <div className="admin-modal-overlay">
-          <div className="admin-modal" style={{ maxWidth: '480px' }}>
-            <div className="admin-modal-header">
-              <h3 className="admin-modal-title">Add New User</h3>
-              <button onClick={() => { setShowAddUserModal(false); setAddUserMsg(null); }} className="admin-modal-close">
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-            <form onSubmit={handleAddUser}>
-              <div className="admin-modal-body space-y-4">
-                {addUserMsg && (
-                  <div className={`admin-alert ${addUserMsg.type === 'success' ? 'admin-alert-success' : 'admin-alert-danger'}`}>
-                    <AlertTriangle className="w-4 h-4 flex-shrink-0" />
-                    <p className="text-sm">{addUserMsg.text}</p>
-                  </div>
-                )}
-                <div className="admin-form-group">
-                  <label className="admin-form-label">Full Name</label>
-                  <input
-                    type="text" required autoComplete="off"
-                    value={newUserName} onChange={(e) => setNewUserName(e.target.value)}
-                    placeholder="Enter full name" className="admin-form-input"
-                  />
-                </div>
-                <div className="admin-form-group">
-                  <label className="admin-form-label">Email Address</label>
-                  <input
-                    type="email" required autoComplete="off"
-                    value={newUserEmail} onChange={(e) => setNewUserEmail(e.target.value)}
-                    placeholder="Enter email" className="admin-form-input"
-                  />
-                </div>
-                <div className="admin-form-group">
-                  <label className="admin-form-label">Password</label>
-                  <input
-                    type="password" required minLength={6} autoComplete="new-password"
-                    value={newUserPassword} onChange={(e) => setNewUserPassword(e.target.value)}
-                    placeholder="Min. 6 characters" className="admin-form-input"
-                  />
-                </div>
-                <div className="admin-form-group">
-                  <label className="admin-form-label">Role</label>
-                  <select value={newUserRole} onChange={(e) => setNewUserRole(e.target.value)} className="admin-form-select">
-                    <option value="attendee">Attendee</option>
-                    <option value="organizer">Organizer</option>
-                    <option value="admin">Admin</option>
-                  </select>
-                </div>
-              </div>
-              <div className="admin-modal-footer">
-                <button type="button" onClick={() => { setShowAddUserModal(false); setAddUserMsg(null); }} className="admin-btn admin-btn-secondary">
-                  Cancel
-                </button>
-                <button type="submit" disabled={isAddingUser} className="admin-btn admin-btn-primary">
-                  {isAddingUser ? <Loader2 className="w-4 h-4 animate-spin" /> : <UserPlus className="w-4 h-4" />}
-                  {isAddingUser ? 'Creating…' : 'Create User'}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+
     </div>
   );
 };

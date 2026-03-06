@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/NewAuthContext';
 import { organizerCrudService, OrganizerEvent } from '../../services/organizerCrudService';
+import { supabase } from '../../lib/supabaseConfig';
 import {
   Loader2, Users, Calendar, Trash2, AlertTriangle, X,
   Eye, TrendingUp, Shield, UserPlus, Edit, BarChart3,
@@ -132,7 +133,43 @@ const AdminDashboard: React.FC = () => {
   };
 
   useEffect(() => {
-    if (profile?.role === 'admin') fetchData();
+    if (profile?.role !== 'admin') return;
+
+    // Initial load
+    fetchData();
+
+    // ── Real-time: user_profiles ──────────────────────────────────────────────
+    const usersChannel = supabase
+      .channel('admin-users-rt')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'user_profiles' },
+        async () => {
+          // Re-fetch all users on any change (INSERT / UPDATE / DELETE)
+          const result = await organizerCrudService.getAllUsers();
+          if (result.success && result.users) setUsers(result.users);
+        }
+      )
+      .subscribe();
+
+    // ── Real-time: events ─────────────────────────────────────────────────────
+    const eventsChannel = supabase
+      .channel('admin-events-rt')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'events' },
+        async () => {
+          // Re-fetch all events on any change (INSERT / UPDATE / DELETE)
+          const result = await organizerCrudService.getAllEvents();
+          if (result.success && result.events) setEvents(result.events);
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(usersChannel);
+      supabase.removeChannel(eventsChannel);
+    };
   }, [profile]);
 
   // ── Derived stats ──────────────────────────────────────────────────────────

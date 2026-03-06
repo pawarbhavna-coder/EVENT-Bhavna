@@ -242,29 +242,21 @@ const AdminDashboard: React.FC = () => {
     setIsAddingUser(true);
     try {
       // Step 1: Create auth user via signUp
+      // The database trigger 'on_auth_user_created' will automatically insert the user_profile
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email: newUserEmail,
         password: newUserPassword,
-        options: { data: { full_name: newUserName } },
+        options: {
+          data: {
+            full_name: newUserName,
+            role: newUserRole
+          }
+        },
       });
 
       if (authError) throw new Error(authError.message);
       const userId = authData.user?.id;
       if (!userId) throw new Error('User creation failed — no user ID returned.');
-
-      // Step 2: Upsert into user_profiles with chosen role
-      const { error: profileError } = await supabase
-        .from('user_profiles')
-        .upsert({
-          id: userId,
-          email: newUserEmail,
-          full_name: newUserName,
-          role: newUserRole,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-        }, { onConflict: 'id' });
-
-      if (profileError) throw new Error(profileError.message);
 
       setAddUserMsg({ type: 'success', text: `User "${newUserName}" created successfully! They can now log in with their email and password.` });
       setNewUserEmail('');

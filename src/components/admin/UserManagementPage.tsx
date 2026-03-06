@@ -6,6 +6,7 @@ import {
   Users, Search, Trash2, AlertTriangle, X, Eye, UserPlus,
   Loader2, Activity, Calendar
 } from 'lucide-react';
+import { supabase } from '../../lib/supabaseConfig';
 import '../../styles/admin-panel.css';
 
 interface AppUser {
@@ -42,7 +43,9 @@ const UserManagementPage: React.FC = () => {
   const [showAddModal, setShowAddModal] = useState(false);
   const [newUserName, setNewUserName] = useState('');
   const [newUserEmail, setNewUserEmail] = useState('');
+  const [newUserPassword, setNewUserPassword] = useState('');
   const [newUserRole, setNewUserRole] = useState('attendee');
+  const [isAddingUser, setIsAddingUser] = useState(false);
   const [addMsg, setAddMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
   const fetchUsers = async () => {
@@ -91,12 +94,39 @@ const UserManagementPage: React.FC = () => {
     setIsActivityLoading(false);
   };
 
-  const handleAddUser = (e: React.FormEvent) => {
+  const handleAddUser = async (e: React.FormEvent) => {
     e.preventDefault();
-    setAddMsg({
-      type: 'error',
-      text: 'User creation requires a server-side admin API. Please invite users from the Supabase dashboard or set up a server endpoint.'
-    });
+    setAddMsg(null);
+    setIsAddingUser(true);
+    try {
+      // Step 1: Create auth user via signUp (DB trigger handles profile creation)
+      const { data: authData, error: authError } = await supabase.auth.signUp({
+        email: newUserEmail,
+        password: newUserPassword,
+        options: {
+          data: {
+            full_name: newUserName,
+            role: newUserRole
+          }
+        },
+      });
+
+      if (authError) throw new Error(authError.message);
+      const userId = authData.user?.id;
+      if (!userId) throw new Error('User creation failed — no user ID returned.');
+
+      setAddMsg({ type: 'success', text: `User "${newUserName}" created successfully! They can log in immediately.` });
+      setNewUserEmail('');
+      setNewUserName('');
+      setNewUserPassword('');
+      setNewUserRole('attendee');
+      // Refresh users list
+      fetchUsers();
+    } catch (err: any) {
+      setAddMsg({ type: 'error', text: err.message || 'Failed to create user.' });
+    } finally {
+      setIsAddingUser(false);
+    }
   };
 
   const getRoleBadge = (role: string) => {
@@ -363,6 +393,11 @@ const UserManagementPage: React.FC = () => {
                     onChange={(e) => setNewUserEmail(e.target.value)} placeholder="Enter email" className="admin-form-input" />
                 </div>
                 <div className="admin-form-group">
+                  <label className="admin-form-label">Password</label>
+                  <input type="password" required minLength={6} autoComplete="new-password" value={newUserPassword}
+                    onChange={(e) => setNewUserPassword(e.target.value)} placeholder="Min. 6 characters" className="admin-form-input" />
+                </div>
+                <div className="admin-form-group">
                   <label className="admin-form-label">Role</label>
                   <select value={newUserRole} onChange={(e) => setNewUserRole(e.target.value)} className="admin-form-select">
                     <option value="attendee">Attendee</option>
@@ -373,8 +408,9 @@ const UserManagementPage: React.FC = () => {
               </div>
               <div className="admin-modal-footer">
                 <button type="button" onClick={() => setShowAddModal(false)} className="admin-btn admin-btn-secondary">Cancel</button>
-                <button type="submit" className="admin-btn admin-btn-primary">
-                  <UserPlus className="w-4 h-4" /> Create User
+                <button type="submit" disabled={isAddingUser} className="admin-btn admin-btn-primary">
+                  {isAddingUser ? <Loader2 className="w-4 h-4 animate-spin" /> : <UserPlus className="w-4 h-4" />}
+                  {isAddingUser ? 'Creating…' : 'Create User'}
                 </button>
               </div>
             </form>

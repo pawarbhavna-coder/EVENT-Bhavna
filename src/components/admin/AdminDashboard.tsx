@@ -118,7 +118,9 @@ const AdminDashboard: React.FC = () => {
   const [showAddUserModal, setShowAddUserModal] = useState(false);
   const [newUserEmail, setNewUserEmail] = useState('');
   const [newUserName, setNewUserName] = useState('');
+  const [newUserPassword, setNewUserPassword] = useState('');
   const [newUserRole, setNewUserRole] = useState('attendee');
+  const [isAddingUser, setIsAddingUser] = useState(false);
   const [addUserMsg, setAddUserMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
   const fetchData = async () => {
@@ -237,12 +239,46 @@ const AdminDashboard: React.FC = () => {
   const handleAddUser = async (e: React.FormEvent) => {
     e.preventDefault();
     setAddUserMsg(null);
-    // Admin cannot directly create users via client SDK (needs server-side inviteByEmail)
-    // Show informational note
-    setAddUserMsg({
-      type: 'error',
-      text: 'User creation requires a server-side admin API. Please use the Supabase dashboard to invite users, or implement a server-side endpoint for this action.'
-    });
+    setIsAddingUser(true);
+    try {
+      // Step 1: Create auth user via signUp
+      const { data: authData, error: authError } = await supabase.auth.signUp({
+        email: newUserEmail,
+        password: newUserPassword,
+        options: { data: { full_name: newUserName } },
+      });
+
+      if (authError) throw new Error(authError.message);
+      const userId = authData.user?.id;
+      if (!userId) throw new Error('User creation failed — no user ID returned.');
+
+      // Step 2: Upsert into user_profiles with chosen role
+      const { error: profileError } = await supabase
+        .from('user_profiles')
+        .upsert({
+          id: userId,
+          email: newUserEmail,
+          full_name: newUserName,
+          role: newUserRole,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        }, { onConflict: 'id' });
+
+      if (profileError) throw new Error(profileError.message);
+
+      setAddUserMsg({ type: 'success', text: `User "${newUserName}" created successfully! They will receive a confirmation email.` });
+      setNewUserEmail('');
+      setNewUserName('');
+      setNewUserPassword('');
+      setNewUserRole('attendee');
+      // Refresh users list
+      const result = await organizerCrudService.getAllUsers();
+      if (result.success && result.users) setUsers(result.users);
+    } catch (err: any) {
+      setAddUserMsg({ type: 'error', text: err.message || 'Failed to create user.' });
+    } finally {
+      setIsAddingUser(false);
+    }
   };
 
   const getRoleBadge = (role: string) => {
@@ -617,6 +653,14 @@ const AdminDashboard: React.FC = () => {
                   />
                 </div>
                 <div className="admin-form-group">
+                  <label className="admin-form-label">Password</label>
+                  <input
+                    type="password" required minLength={6} autoComplete="new-password"
+                    value={newUserPassword} onChange={(e) => setNewUserPassword(e.target.value)}
+                    placeholder="Min. 6 characters" className="admin-form-input"
+                  />
+                </div>
+                <div className="admin-form-group">
                   <label className="admin-form-label">Role</label>
                   <select value={newUserRole} onChange={(e) => setNewUserRole(e.target.value)} className="admin-form-select">
                     <option value="attendee">Attendee</option>
@@ -629,8 +673,9 @@ const AdminDashboard: React.FC = () => {
                 <button type="button" onClick={() => { setShowAddUserModal(false); setAddUserMsg(null); }} className="admin-btn admin-btn-secondary">
                   Cancel
                 </button>
-                <button type="submit" className="admin-btn admin-btn-primary">
-                  <UserPlus className="w-4 h-4" /> Create User
+                <button type="submit" disabled={isAddingUser} className="admin-btn admin-btn-primary">
+                  {isAddingUser ? <Loader2 className="w-4 h-4 animate-spin" /> : <UserPlus className="w-4 h-4" />}
+                  {isAddingUser ? 'Creating…' : 'Create User'}
                 </button>
               </div>
             </form>
